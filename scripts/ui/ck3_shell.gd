@@ -54,6 +54,8 @@ var _character_panel: VBoxContainer
 var _army_panel: VBoxContainer
 var _realm_panel: VBoxContainer
 var _realm_body: Label
+var _char_name: Label
+var _char_role: Label
 var _char_body: Label
 var _char_education: Label
 var _char_dynasty: Label
@@ -226,21 +228,26 @@ func _build_top_bar() -> void:
 	icons.add_theme_constant_override("separation", 6)
 	row.add_child(icons)
 
-	var stub_names: PackedStringArray = PackedStringArray([
-		"Realm", "Military", "Council", "Court", "Intrigue", "Decisions"
-	])
-	for n in stub_names:
+	var stub_items: Array = [
+		{"abbr": "Rlm", "title": "Realm", "live": false},
+		{"abbr": "Mil", "title": "Military", "live": true},
+		{"abbr": "Cou", "title": "Council", "live": true},
+		{"abbr": "Crt", "title": "Court", "live": false},
+		{"abbr": "Int", "title": "Intrigue", "live": false},
+		{"abbr": "Dec", "title": "Decisions", "live": true},
+	]
+	for item in stub_items:
 		var b := Button.new()
-		b.text = str(n)
-		var title_name: String = str(n)
-		var is_live: bool = title_name == "Council" or title_name == "Military" or title_name == "Decisions"
+		var title_name: String = str(item["title"])
+		var is_live: bool = bool(item["live"])
+		b.text = str(item["abbr"])
 		if is_live:
 			b.tooltip_text = title_name
 			b.theme_type_variation = "GhostButton"
 		else:
 			b.tooltip_text = "%s — Coming" % title_name
 			b.theme_type_variation = "ComingButton"
-		b.custom_minimum_size = Vector2(78, 28)
+		b.custom_minimum_size = Vector2(40, 30)
 		b.pressed.connect(func() -> void: _open_stub_window(title_name))
 		icons.add_child(b)
 
@@ -279,28 +286,28 @@ func _build_outliner() -> void:
 
 	vbox.add_child(_label("OUTLINER", "SectionLabel"))
 
-	vbox.add_child(_section_header("Holdings"))
+	vbox.add_child(_label("Holdings", "MuteLabel"))
 	_holdings_box = VBoxContainer.new()
 	_holdings_box.add_theme_constant_override("separation", 2)
 	vbox.add_child(_holdings_box)
 
-	vbox.add_child(_section_header("Vassals"))
+	vbox.add_child(_label("Vassals", "MuteLabel"))
 	_vassals_box = VBoxContainer.new()
 	_vassals_box.add_theme_constant_override("separation", 2)
 	vbox.add_child(_vassals_box)
 	_vassals_box.add_child(_label("None", "MuteLabel"))
 
-	vbox.add_child(_section_header("People"))
+	vbox.add_child(_label("People", "MuteLabel"))
 	_people_box = VBoxContainer.new()
 	_people_box.add_theme_constant_override("separation", 2)
 	vbox.add_child(_people_box)
 
-	vbox.add_child(_section_header("Armies"))
+	vbox.add_child(_label("Armies", "MuteLabel"))
 	_armies_box = VBoxContainer.new()
 	_armies_box.add_theme_constant_override("separation", 2)
 	vbox.add_child(_armies_box)
 
-	vbox.add_child(_section_header("Factions"))
+	vbox.add_child(_label("Factions", "MuteLabel"))
 	_factions_box = VBoxContainer.new()
 	_factions_box.add_theme_constant_override("separation", 2)
 	vbox.add_child(_factions_box)
@@ -377,8 +384,17 @@ func _build_side_panel() -> void:
 	char_title_col.add_theme_constant_override("separation", 4)
 	char_title_col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	char_header.add_child(char_title_col)
+	_char_name = _label("", "TitleLabel")
+	_char_name.name = "CharName"
+	_char_name.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	char_title_col.add_child(_char_name)
+	_char_role = _label("", "MuteLabel")
+	_char_role.name = "CharRole"
+	_char_role.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	char_title_col.add_child(_char_role)
 	_char_body = _label("", "BodyLabel")
 	_char_body.name = "CharBody"
+	_char_body.visible = false
 	_char_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	char_title_col.add_child(_char_body)
 	_char_dynasty = _label("", "AccentLabel")
@@ -576,9 +592,10 @@ func _refresh_council_rows() -> void:
 
 		var row := Button.new()
 		row.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		row.text = "%s   |   %s   |   %s" % [job_label, appointee_name, task_label]
+		row.text = ""
 		row.tooltip_text = "%s — %s (%s)" % [job_label, appointee_name, task_label]
-		row.custom_minimum_size = Vector2(0, 30)
+		row.custom_minimum_size = Vector2(0, 44)
+		row.clip_text = true
 		if has_appointee:
 			row.theme_type_variation = "ListRow"
 			var captured: Node = appointee
@@ -589,6 +606,24 @@ func _refresh_council_rows() -> void:
 		else:
 			row.theme_type_variation = "ComingButton"
 			row.disabled = true
+		var row_margin := MarginContainer.new()
+		row_margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		row_margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row_margin.add_theme_constant_override("margin_left", 8)
+		row_margin.add_theme_constant_override("margin_right", 8)
+		row_margin.add_theme_constant_override("margin_top", 4)
+		row_margin.add_theme_constant_override("margin_bottom", 4)
+		row.add_child(row_margin)
+		var row_col := VBoxContainer.new()
+		row_col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row_col.add_theme_constant_override("separation", 0)
+		row_margin.add_child(row_col)
+		var job_l := _label(job_label, "BodyLabel")
+		job_l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row_col.add_child(job_l)
+		var name_l := _label(appointee_name, "MuteLabel")
+		name_l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row_col.add_child(name_l)
 		_council_rows.add_child(row)
 
 
@@ -754,7 +789,7 @@ func _add_decision_row(title_text: String, hint: String, enabled: bool, on_press
 		row.text = title_text
 		row.tooltip_text = hint
 		row.disabled = false
-		row.theme_type_variation = "GhostButton"
+		row.theme_type_variation = "PrimaryButton"
 		if on_press.is_valid():
 			row.pressed.connect(on_press)
 	else:
@@ -981,13 +1016,16 @@ func _populate_character(node: Node) -> void:
 	if _char_portrait:
 		Ck3Theme.set_portrait_initials(_char_portrait, Ck3Theme.initials_of(char_name))
 
-	if _char_body:
-		var lines: PackedStringArray = PackedStringArray()
-		lines.append(char_name)
-		lines.append("Role: %s" % str(data.get("role", "-")))
+	if _char_name:
+		_char_name.text = char_name
+	if _char_role:
+		var role_bits: PackedStringArray = PackedStringArray()
+		role_bits.append(str(data.get("role", "-")))
 		if data.has("opinion"):
-			lines.append("Opinion: %s" % str(data.get("opinion")))
-		_char_body.text = "\n".join(lines)
+			role_bits.append("Opinion: %s" % str(data.get("opinion")))
+		_char_role.text = " / ".join(role_bits)
+	if _char_body:
+		_char_body.text = ""
 
 	if _char_dynasty:
 		if is_ruler and is_instance_valid(GameData):
