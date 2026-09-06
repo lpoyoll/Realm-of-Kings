@@ -18,7 +18,9 @@ func _ready() -> void:
 			8, 7, 9, 5, 6
 		)
 	if has_node("NameLabel"):
-		($NameLabel as Label3D).text = display_name
+		var nl := $NameLabel as Label3D
+		nl.text = display_name
+		nl.add_to_group("nameplates")
 
 func _physics_process(delta: float) -> void:
 	if not is_on_floor():

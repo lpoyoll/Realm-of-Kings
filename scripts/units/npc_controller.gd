@@ -80,7 +80,10 @@ func _apply_accent() -> void:
 
 func _ensure_label() -> void:
 	if has_node("NameLabel"):
-		($NameLabel as Label3D).text = display_name
+		var nl := $NameLabel as Label3D
+		nl.text = display_name
+		if not nl.is_in_group("nameplates"):
+			nl.add_to_group("nameplates")
 		return
 	var label := Label3D.new()
 	label.name = "NameLabel"
@@ -90,6 +93,7 @@ func _ensure_label() -> void:
 	label.font_size = 28
 	label.outline_size = 6
 	label.modulate = Color(1.0, 0.92, 0.55)
+	label.add_to_group("nameplates")
 	add_child(label)
 
 func get_inspect_data() -> Dictionary:

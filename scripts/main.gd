@@ -320,6 +320,23 @@ func _try_army_move() -> void:
 		if hud:
 			hud.set_status("Army marching")
 
+func _process(_delta: float) -> void:
+	_update_nameplates()
+
+func _update_nameplates() -> void:
+	if camera_rig == null or not camera_rig.has_method("get_zoom_t"):
+		return
+	var t: float = camera_rig.get_zoom_t()
+	# Fade out as we enter strategy band (t > 0.55 is Strategy label)
+	var alpha: float = clampf(1.0 - (t - 0.40) / 0.20, 0.0, 1.0)
+	var show: bool = alpha > 0.05
+	for n in get_tree().get_nodes_in_group("nameplates"):
+		if n is Label3D:
+			var lab := n as Label3D
+			lab.visible = show
+			lab.modulate = Color(lab.modulate.r, lab.modulate.g, lab.modulate.b, alpha)
+
+
 func _raycast() -> Dictionary:
 	var cam := get_viewport().get_camera_3d()
 	if cam == null:
