@@ -31,6 +31,7 @@ The HUD is a CK3-like chrome frame over the continuous 3D map:
 4. **Council** — top-bar **Council** → panel lists five jobs with live appointees; click a councillor to update the character dossier (panel stays open).
 5. **Military** — top-bar **Military** → Levies live count (map soldiers) + MaA regiment slots (Bowmen / Spearmen / Light Horse at size 0; Recruit Coming/disabled). No MaA bodies on the map.
 6. **Decisions** — top-bar **Decisions** → panel lists Hold Court / Host Feast (live stubs) and Invite Knights / Send Gift (Coming). Hold Court bumps councillor opinions; Host Feast deducts a small gold stub. No new map bodies.
+7. **Court** — top-bar **Court** → panel lists existing ruler + named NPCs as courtiers (portrait initials + name + role); click a row to open the character dossier. Court Physician / Court Tutor stay Vacant / Coming. No new map bodies.
 
 ### Controls
 - **WASD** — walk Baron Aldric Ashford (best at Street zoom)
@@ -55,8 +56,9 @@ You open in a **strategy overview** of Ashford with CK3-style panels. Raise levi
 - Dynasty / title / vitals stubs on the top bar
 - Character dossier shows traits / education / skills stubs (per person)
 - **Council** top-bar icon opens a Council window stub: Chancellor / Steward / Marshal / Spymaster / Court Chaplain assigned to existing NPCs (Mira Goods, Steward Corvin, Captain Rhea, Elowen Ashford, Father Alden). Click a row to select that person in the side dossier (traits still work).
-- **Military** top-bar icon opens a Military window: live levy count from army on the map, plus Men-at-Arms slots (Bowmen / Spearmen / Light Horse) at size 0 with Recruit Coming/disabled. MaA do not spawn map entities; levies remain the only raised troops. Realm / Court / Intrigue stay Coming stubs.
+- **Military** top-bar icon opens a Military window: live levy count from army on the map, plus Men-at-Arms slots (Bowmen / Spearmen / Light Horse) at size 0 with Recruit Coming/disabled. MaA do not spawn map entities; levies remain the only raised troops.
 - **Decisions** top-bar icon opens a Decisions window stub: Hold Court (toast + councillor opinion +2), Host Feast (toast + small gold cost), Invite Knights / Send Gift Coming/disabled. Panel-only — no street/RTS and no new entities.
+- **Court** top-bar icon opens a Court window stub: Court of Ashford / House Ashford header, courtiers from existing ruler + named NPCs (click opens dossier), Court Physician / Court Tutor Vacant Coming. Realm / Intrigue stay Coming stubs.
 
 ## Layout
 ```

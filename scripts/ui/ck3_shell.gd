@@ -79,6 +79,12 @@ var _military_marshal_label: Label
 var _decisions_modal: PanelContainer
 var _decisions_rows: VBoxContainer
 
+var _court_modal: PanelContainer
+var _court_title: Label
+var _court_house: Label
+var _court_rows: VBoxContainer
+var _court_positions: VBoxContainer
+
 func _ready() -> void:
 	_theme = Ck3Theme.get_theme()
 	_build_ui()
@@ -179,6 +185,7 @@ func _build_ui() -> void:
 	_build_council_window()
 	_build_military_window()
 	_build_decisions_window()
+	_build_court_window()
 
 func _build_top_bar() -> void:
 	var top := PanelContainer.new()
@@ -232,7 +239,7 @@ func _build_top_bar() -> void:
 		{"abbr": "Rlm", "title": "Realm", "live": false},
 		{"abbr": "Mil", "title": "Military", "live": true},
 		{"abbr": "Cou", "title": "Council", "live": true},
-		{"abbr": "Crt", "title": "Court", "live": false},
+		{"abbr": "Crt", "title": "Court", "live": true},
 		{"abbr": "Int", "title": "Intrigue", "live": false},
 		{"abbr": "Dec", "title": "Decisions", "live": true},
 	]
@@ -475,6 +482,9 @@ func _open_stub_window(title_text: String) -> void:
 	if title_text == "Decisions":
 		_open_decisions_window()
 		return
+	if title_text == "Court":
+		_open_court_window()
+		return
 	if _stub_modal == null:
 		return
 	if _council_modal:
@@ -483,6 +493,8 @@ func _open_stub_window(title_text: String) -> void:
 		_military_modal.visible = false
 	if _decisions_modal:
 		_decisions_modal.visible = false
+	if _court_modal:
+		_court_modal.visible = false
 	_stub_modal_title.text = title_text
 	_stub_modal_body.text = "Coming — %s window stub (Horizon B)." % title_text
 	_stub_modal.visible = true
@@ -556,6 +568,8 @@ func _open_council_window() -> void:
 		_military_modal.visible = false
 	if _decisions_modal:
 		_decisions_modal.visible = false
+	if _court_modal:
+		_court_modal.visible = false
 	_refresh_council_rows()
 	_council_modal.visible = true
 	set_status("Council")
@@ -719,6 +733,8 @@ func _open_military_window() -> void:
 		_council_modal.visible = false
 	if _decisions_modal:
 		_decisions_modal.visible = false
+	if _court_modal:
+		_court_modal.visible = false
 	_refresh_military_levy()
 	_military_modal.visible = true
 	set_status("Military")
@@ -808,6 +824,8 @@ func _open_decisions_window() -> void:
 		_council_modal.visible = false
 	if _military_modal:
 		_military_modal.visible = false
+	if _court_modal:
+		_court_modal.visible = false
 	_decisions_modal.visible = true
 	set_status("Decisions")
 
@@ -842,6 +860,161 @@ func _on_host_feast() -> void:
 			set_status("Hosted a feast (not enough gold for %d stub cost)." % cost)
 	else:
 		set_status("Hosted a feast.")
+
+func _build_court_window() -> void:
+	_court_modal = PanelContainer.new()
+	_court_modal.name = "CourtModal"
+	_court_modal.mouse_filter = Control.MOUSE_FILTER_STOP
+	_court_modal.visible = false
+	_court_modal.set_anchors_preset(Control.PRESET_CENTER)
+	_court_modal.offset_left = -280.0
+	_court_modal.offset_top = -240.0
+	_court_modal.offset_right = 280.0
+	_court_modal.offset_bottom = 240.0
+	_root.add_child(_court_modal)
+
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 8)
+	_court_modal.add_child(v)
+
+	var header := HBoxContainer.new()
+	header.add_theme_constant_override("separation", 12)
+	v.add_child(header)
+	_court_title = _label("Court of Ashford", "TitleLabel")
+	header.add_child(_court_title)
+	var spacer := Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	header.add_child(spacer)
+	var close_btn := Button.new()
+	close_btn.text = "Close"
+	close_btn.theme_type_variation = "GhostButton"
+	close_btn.pressed.connect(_close_court_window)
+	header.add_child(close_btn)
+
+	_court_house = _label("House Ashford", "AccentLabel")
+	_court_house.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	v.add_child(_court_house)
+
+	v.add_child(_label("Courtiers (existing people — no new map bodies).", "MuteLabel"))
+
+	_court_rows = VBoxContainer.new()
+	_court_rows.name = "CourtRows"
+	_court_rows.add_theme_constant_override("separation", 4)
+	v.add_child(_court_rows)
+
+	v.add_child(_section_header("Court Positions"))
+	_court_positions = VBoxContainer.new()
+	_court_positions.name = "CourtPositions"
+	_court_positions.add_theme_constant_override("separation", 4)
+	v.add_child(_court_positions)
+
+	var vacant_jobs: PackedStringArray = PackedStringArray(["Court Physician", "Court Tutor"])
+	for job_name in vacant_jobs:
+		var row := Button.new()
+		row.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		row.text = "%s — Vacant / Coming" % str(job_name)
+		row.tooltip_text = "Coming"
+		row.disabled = true
+		row.theme_type_variation = "ComingButton"
+		row.custom_minimum_size = Vector2(0, 30)
+		_court_positions.add_child(row)
+
+	v.add_child(_label("Click a courtier to open their dossier.", "MuteLabel"))
+
+func _open_court_window() -> void:
+	if _court_modal == null:
+		_build_court_window()
+	if _stub_modal:
+		_stub_modal.visible = false
+	if _council_modal:
+		_council_modal.visible = false
+	if _military_modal:
+		_military_modal.visible = false
+	if _decisions_modal:
+		_decisions_modal.visible = false
+	_refresh_court_rows()
+	_court_modal.visible = true
+	set_status("Court")
+
+func _close_court_window() -> void:
+	if _court_modal:
+		_court_modal.visible = false
+
+func _refresh_court_rows() -> void:
+	if _court_rows == null:
+		return
+	_clear_box(_court_rows)
+
+	var seat_name: String = "Ashford"
+	var house_name: String = "Ashford"
+	if is_instance_valid(GameData):
+		if GameData.realm:
+			seat_name = str(GameData.realm.capital_settlement)
+		if GameData.dynasty:
+			house_name = str(GameData.dynasty.name)
+	if _court_title:
+		_court_title.text = "Court of %s" % seat_name
+	if _court_house:
+		_court_house.text = "House %s" % house_name
+
+	var people: Array = []
+	people.append_array(get_tree().get_nodes_in_group("ruler"))
+	people.append_array(get_tree().get_nodes_in_group("npcs"))
+	var listed: int = 0
+	for p in people:
+		if p == null or not is_instance_valid(p):
+			continue
+		var pname: String = str(p.name)
+		if "display_name" in p:
+			pname = str(p.display_name)
+		elif p.has_method("get_inspect_data"):
+			pname = str(p.get_inspect_data().get("name", p.name))
+		var role_line: String = _role_of(p)
+		if role_line.is_empty():
+			role_line = "Courtier"
+		var captured: Node = p
+		var row := Button.new()
+		row.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		row.text = ""
+		row.tooltip_text = "%s — %s" % [pname, role_line]
+		row.custom_minimum_size = Vector2(0, 48)
+		row.clip_text = true
+		row.theme_type_variation = "ListRow"
+		row.pressed.connect(func() -> void:
+			select_character(captured)
+			set_status("Court -> %s" % pname)
+		)
+		var row_margin := MarginContainer.new()
+		row_margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		row_margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row_margin.add_theme_constant_override("margin_left", 8)
+		row_margin.add_theme_constant_override("margin_right", 8)
+		row_margin.add_theme_constant_override("margin_top", 4)
+		row_margin.add_theme_constant_override("margin_bottom", 4)
+		row.add_child(row_margin)
+		var row_h := HBoxContainer.new()
+		row_h.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row_h.add_theme_constant_override("separation", 10)
+		row_margin.add_child(row_h)
+		var portrait: PanelContainer = Ck3Theme.make_portrait(Ck3Theme.initials_of(pname), 36.0)
+		portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row_h.add_child(portrait)
+		var row_col := VBoxContainer.new()
+		row_col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row_col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row_col.add_theme_constant_override("separation", 0)
+		row_h.add_child(row_col)
+		var name_l := _label(pname, "BodyLabel")
+		name_l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row_col.add_child(name_l)
+		var role_l := _label(role_line, "MuteLabel")
+		role_l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row_col.add_child(role_l)
+		_court_rows.add_child(row)
+		listed += 1
+	if listed == 0:
+		_court_rows.add_child(_label("(no courtiers)", "MuteLabel"))
 
 func _build_bottom_bar() -> void:
 	var bottom := PanelContainer.new()
