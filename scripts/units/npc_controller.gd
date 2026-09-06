@@ -8,6 +8,7 @@ extends CharacterBody3D
 @export var accent_color: Color = Color(0.7, 0.5, 0.3)
 @export var wander_radius: float = 2.0
 @export var move_speed: float = 1.4
+@export var sheet: CharacterSheet
 
 var _home: Vector3
 var _target: Vector3
@@ -16,6 +17,12 @@ var _gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 
 func _ready() -> void:
 	add_to_group("npcs")
+	if sheet == null:
+		sheet = CharacterSheet.make(
+			PackedStringArray(["Content"]),
+			"Amateurish Plotter",
+			5, 5, 5, 5, 5
+		)
 	_home = global_position
 	_pick_target()
 	_apply_accent()
@@ -86,9 +93,27 @@ func _ensure_label() -> void:
 	add_child(label)
 
 func get_inspect_data() -> Dictionary:
-	return {
+	var data: Dictionary = {
 		"name": display_name,
 		"role": role,
 		"opinion": opinion,
 		"kind": "npc",
 	}
+	_append_sheet_data(data)
+	return data
+
+func _append_sheet_data(data: Dictionary) -> void:
+	if sheet == null:
+		return
+	data["traits"] = sheet.personality_traits
+	data["education"] = sheet.education
+	data["skills"] = {
+		"diplomacy": sheet.diplomacy,
+		"martial": sheet.martial,
+		"stewardship": sheet.stewardship,
+		"intrigue": sheet.intrigue,
+		"learning": sheet.learning,
+	}
+	data["traits_line"] = sheet.traits_line()
+	data["education_line"] = sheet.education_line()
+	data["skills_line"] = sheet.skills_line()

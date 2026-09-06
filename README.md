@@ -27,7 +27,7 @@ The HUD is a CK3-like chrome frame over the continuous 3D map:
 ### Primary flows
 1. **Raise Levy** — select Ashford (map or outliner) → side panel → **Raise Levy** button. Converts 4–8 villagers into soldiers (People −N, Army +N). Named NPCs are never levied. **R** remains an optional shortcut only.
 2. **Move army** — select the army (banner/bodies or outliner) → side panel shows *Right-click map to move* → **RMB** on ground.
-3. **Inspect character** — select ruler/NPC (map or outliner) → name / role / opinion → **Go to** pans/follows.
+3. **Inspect character** — select ruler/NPC (map or outliner) → name / role / opinion / traits / education / skills → **Go to** pans/follows.
 
 ### Controls
 - **WASD** — walk Baron Aldric Ashford (best at Street zoom)
@@ -50,6 +50,7 @@ You open in a **strategy overview** of Ashford with CK3-style panels. Raise levi
 - Raise Levy converts villagers → soldiers (no spawn-from-nowhere)
 - People = civilians only (NPCs + villagers); Army = soldiers
 - Dynasty / title / vitals stubs on the top bar
+- Character dossier shows traits / education / skills stubs (per person)
 
 ## Layout
 ```

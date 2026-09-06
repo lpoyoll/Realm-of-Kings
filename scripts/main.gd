@@ -32,16 +32,76 @@ func _spawn_settlement() -> void:
 
 func _spawn_ruler() -> void:
 	ruler = RULER_SCENE.instantiate()
+	ruler.sheet = CharacterSheet.make(
+		PackedStringArray(["Ambitious", "Just"]),
+		"Skilled Tactician",
+		8, 7, 9, 5, 6
+	)
 	add_child(ruler)
 	ruler.global_position = Vector3(0, 0.2, 4)
 
 func _spawn_npcs() -> void:
 	var defs := [
-		{"name": "Steward Corvin", "role": "Steward", "opinion": 72, "pos": Vector3(1.5, 0.2, -10.5), "color": Color(0.35, 0.55, 0.85)},
-		{"name": "Captain Rhea", "role": "Captain", "opinion": 65, "pos": Vector3(6, 0.2, 5), "color": Color(0.75, 0.25, 0.25)},
-		{"name": "Father Alden", "role": "Priest", "opinion": 58, "pos": Vector3(-5.5, 0.2, -3.5), "color": Color(0.9, 0.9, 0.85)},
-		{"name": "Mira Goods", "role": "Merchant", "opinion": 48, "pos": Vector3(8, 0.2, 3.5), "color": Color(0.85, 0.55, 0.15)},
-		{"name": "Elowen Ashford", "role": "Heir", "opinion": 90, "pos": Vector3(-2, 0.2, -9), "color": Color(0.7, 0.35, 0.75)},
+		{
+			"name": "Steward Corvin",
+			"role": "Steward",
+			"opinion": 72,
+			"pos": Vector3(1.5, 0.2, -10.5),
+			"color": Color(0.35, 0.55, 0.85),
+			"sheet": CharacterSheet.make(
+				PackedStringArray(["Diligent", "Temperate"]),
+				"Fortune Builder",
+				6, 3, 12, 7, 5
+			),
+		},
+		{
+			"name": "Captain Rhea",
+			"role": "Captain",
+			"opinion": 65,
+			"pos": Vector3(6, 0.2, 5),
+			"color": Color(0.75, 0.25, 0.25),
+			"sheet": CharacterSheet.make(
+				PackedStringArray(["Brave", "Wrathful"]),
+				"Brilliant Strategist",
+				4, 14, 5, 6, 3
+			),
+		},
+		{
+			"name": "Father Alden",
+			"role": "Priest",
+			"opinion": 58,
+			"pos": Vector3(-5.5, 0.2, -3.5),
+			"color": Color(0.9, 0.9, 0.85),
+			"sheet": CharacterSheet.make(
+				PackedStringArray(["Zealous", "Compassionate"]),
+				"Theologian",
+				7, 2, 4, 3, 13
+			),
+		},
+		{
+			"name": "Mira Goods",
+			"role": "Merchant",
+			"opinion": 48,
+			"pos": Vector3(8, 0.2, 3.5),
+			"color": Color(0.85, 0.55, 0.15),
+			"sheet": CharacterSheet.make(
+				PackedStringArray(["Gregarious", "Greedy"]),
+				"Midwell Educated",
+				10, 3, 11, 8, 6
+			),
+		},
+		{
+			"name": "Elowen Ashford",
+			"role": "Heir",
+			"opinion": 90,
+			"pos": Vector3(-2, 0.2, -9),
+			"color": Color(0.7, 0.35, 0.75),
+			"sheet": CharacterSheet.make(
+				PackedStringArray(["Curious", "Ambitious"]),
+				"Charismatic Negotiator",
+				9, 5, 6, 10, 8
+			),
+		},
 	]
 	for d in defs:
 		var npc = NPC_SCENE.instantiate()
@@ -49,11 +109,12 @@ func _spawn_npcs() -> void:
 		npc.role = d.role
 		npc.opinion = d.opinion
 		npc.accent_color = d.color
+		npc.sheet = d.sheet
 		add_child(npc)
 		npc.global_position = d.pos
 
 func _spawn_villagers() -> void:
-	# ~16 villagers so a levy of 4â€“8 leaves civilians remaining
+	# ~16 villagers so a levy of 4–8 leaves civilians remaining
 	var names := [
 		"Bram", "Elsa", "Tomlin", "Nessa", "Hud", "Petra", "Owen", "Kira",
 		"Joss", "Willa", "Edda", "Rolf", "Mara", "Seth", "Lina", "Garr"
@@ -164,7 +225,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_tree().quit()
 		return
 	if event.is_action_pressed("muster"):
-		# Optional shortcut â€” canonical path is holding panel Raise Levy
+		# Optional shortcut — canonical path is holding panel Raise Levy
 		_do_muster()
 		return
 	if event.is_action_pressed("pause"):
@@ -187,7 +248,7 @@ func _try_select() -> void:
 	var collider: Object = hit.get("collider")
 	var node: Node = collider as Node
 	while node:
-		# Soldier â†’ select owning army
+		# Soldier → select owning army
 		if node.is_in_group("soldiers"):
 			_select_army()
 			return
@@ -236,7 +297,7 @@ func _select_army() -> void:
 
 func _try_army_move() -> void:
 	# Only when army is the current selection (CK3-like order flow)
-	var army_selected := false
+	var army_selected: bool = false
 	if hud and "sel_kind" in hud:
 		army_selected = hud.sel_kind == hud.SelKind.ARMY
 	elif selected == army:

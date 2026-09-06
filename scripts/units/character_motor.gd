@@ -5,11 +5,18 @@ extends CharacterBody3D
 @export var display_name: String = "Aldric Ashford"
 @export var role: String = "Baron"
 @export var opinion: int = 100
+@export var sheet: CharacterSheet
 
 var _gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 
 func _ready() -> void:
 	add_to_group("ruler")
+	if sheet == null:
+		sheet = CharacterSheet.make(
+			PackedStringArray(["Ambitious", "Just"]),
+			"Skilled Tactician",
+			8, 7, 9, 5, 6
+		)
 	if has_node("NameLabel"):
 		($NameLabel as Label3D).text = display_name
 
@@ -48,9 +55,27 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 
 func get_inspect_data() -> Dictionary:
-	return {
+	var data: Dictionary = {
 		"name": display_name,
 		"role": role,
 		"opinion": opinion,
 		"kind": "ruler",
 	}
+	_append_sheet_data(data)
+	return data
+
+func _append_sheet_data(data: Dictionary) -> void:
+	if sheet == null:
+		return
+	data["traits"] = sheet.personality_traits
+	data["education"] = sheet.education
+	data["skills"] = {
+		"diplomacy": sheet.diplomacy,
+		"martial": sheet.martial,
+		"stewardship": sheet.stewardship,
+		"intrigue": sheet.intrigue,
+		"learning": sheet.learning,
+	}
+	data["traits_line"] = sheet.traits_line()
+	data["education_line"] = sheet.education_line()
+	data["skills_line"] = sheet.skills_line()

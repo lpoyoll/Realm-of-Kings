@@ -60,6 +60,7 @@ var _realm_panel: VBoxContainer
 var _realm_body: Label
 var _char_body: Label
 var _char_traits: Label
+var _char_education: Label
 var _char_skills: Label
 var _char_dynasty: Label
 var _army_body: Label
@@ -420,10 +421,13 @@ func _build_side_panel() -> void:
 	_char_dynasty = _label("", 13, Color(0.95, 0.85, 0.45))
 	_char_dynasty.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_character_panel.add_child(_char_dynasty)
-	_char_traits = _label("Traits: Ambitious, Brave", 13, Color(0.78, 0.74, 0.66))
+	_char_traits = _label("Personality: -", 13, Color(0.78, 0.74, 0.66))
 	_char_traits.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_character_panel.add_child(_char_traits)
-	_char_skills = _label("Skills: Diplomacy 8 · Martial 7 · Stewardship 6 · Intrigue 5 · Learning 7", 12, Color(0.72, 0.78, 0.82))
+	_char_education = _label("Education: -", 13, Color(0.78, 0.74, 0.66))
+	_char_education.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_character_panel.add_child(_char_education)
+	_char_skills = _label("Skills: -", 12, Color(0.72, 0.78, 0.82))
 	_char_skills.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_character_panel.add_child(_char_skills)
 	_goto_btn = Button.new()
@@ -670,17 +674,11 @@ func _populate_character(node: Node) -> void:
 			_char_dynasty.text = ""
 
 	if _char_traits:
-		if is_ruler:
-			_char_traits.text = "Traits: Ambitious, Brave, Just"
-		else:
-			_char_traits.text = "Traits: Ambitious, Brave"
-
+		_char_traits.text = str(data.get("traits_line", "Personality: -"))
+	if _char_education:
+		_char_education.text = str(data.get("education_line", "Education: -"))
 	if _char_skills:
-		if is_ruler:
-			_char_skills.text = "Skills: Diplomacy 8 · Martial 7 · Stewardship 9 · Intrigue 5 · Learning 6"
-		else:
-			_char_skills.text = "Skills: Diplomacy 8 · Martial 7 · Stewardship 6 · Intrigue 5 · Learning 7"
-
+		_char_skills.text = str(data.get("skills_line", "Skills: -"))
 func _populate_army(node: Node) -> void:
 	var count := 0
 	var army_node: Node = army if army else node
