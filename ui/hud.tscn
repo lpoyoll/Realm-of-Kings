@@ -1,0 +1,94 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/hud.gd" id="1"]
+
+[node name="HUD" type="CanvasLayer"]
+script = ExtResource("1")
+
+[node name="Root" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="TopBar" type="PanelContainer" parent="Root"]
+layout_mode = 0
+offset_left = 12.0
+offset_top = 12.0
+offset_right = 640.0
+offset_bottom = 168.0
+
+[node name="Margin" type="MarginContainer" parent="Root/TopBar"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 8
+
+[node name="VBox" type="VBoxContainer" parent="Root/TopBar/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="DynastyLabel" type="Label" parent="Root/TopBar/Margin/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Ashford"
+
+[node name="CountsLabel" type="Label" parent="Root/TopBar/Margin/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "People: 0   Army: 0"
+
+[node name="SelectedLabel" type="Label" parent="Root/TopBar/Margin/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Selected: -"
+
+[node name="ZoomLabel" type="Label" parent="Root/TopBar/Margin/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Zoom: Local (wheel)"
+
+[node name="StatusLabel" type="Label" parent="Root/TopBar/Margin/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Ready"
+
+[node name="Buttons" type="HBoxContainer" parent="Root/TopBar/Margin/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="MusterButton" type="Button" parent="Root/TopBar/Margin/VBox/Buttons"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Raise Levy (R)"
+
+[node name="PauseButton" type="Button" parent="Root/TopBar/Margin/VBox/Buttons"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Pause"
+
+[node name="Speed1Button" type="Button" parent="Root/TopBar/Margin/VBox/Buttons"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "1x"
+
+[node name="Speed2Button" type="Button" parent="Root/TopBar/Margin/VBox/Buttons"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "2x"
+
+[node name="Help" type="Label" parent="Root"]
+layout_mode = 0
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 12.0
+offset_top = -40.0
+offset_right = 900.0
+offset_bottom = -12.0
+grow_vertical = 0
+text = "WASD move | Wheel zoom | Q/E orbit | LMB select | RMB army move | R muster | Esc quit"
