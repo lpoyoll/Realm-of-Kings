@@ -34,7 +34,8 @@ func register_soldier(soldier: Node) -> void:
 		soldier.slot_offset = _slot_for(idx)
 
 func _slot_for(index: int) -> Vector3:
-	var row := index div columns
+	@warning_ignore("integer_division")
+	var row := index / columns
 	var col := index % columns
 	var x := (col - (columns - 1) * 0.5) * formation_spacing
 	var z := float(row) * formation_spacing
