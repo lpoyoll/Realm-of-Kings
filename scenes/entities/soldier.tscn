@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=9 format=3]
 
 [ext_resource type="Script" path="res://scripts/units/soldier.gd" id="1"]
 
@@ -6,23 +6,31 @@
 radius = 0.3
 height = 1.5
 
-[sub_resource type="BoxMesh" id="BodyMesh"]
-size = Vector3(0.55, 0.95, 0.38)
+[sub_resource type="CapsuleMesh" id="BodyMesh"]
+radius = 0.28
+height = 0.95
 
 [sub_resource type="StandardMaterial3D" id="MatBody"]
-albedo_color = Color(0.45, 0.48, 0.52, 1)
+albedo_color = Color(0.42, 0.46, 0.52, 1)
+roughness = 1.0
+metallic = 0.0
 
-[sub_resource type="BoxMesh" id="HeadMesh"]
-size = Vector3(0.36, 0.36, 0.36)
+[sub_resource type="SphereMesh" id="HeadMesh"]
+radius = 0.2
+height = 0.4
 
 [sub_resource type="StandardMaterial3D" id="MatHead"]
 albedo_color = Color(0.86, 0.7, 0.55, 1)
+roughness = 1.0
+metallic = 0.0
 
 [sub_resource type="BoxMesh" id="ShieldMesh"]
 size = Vector3(0.08, 0.55, 0.4)
 
 [sub_resource type="StandardMaterial3D" id="MatShield"]
 albedo_color = Color(0.55, 0.2, 0.18, 1)
+roughness = 1.0
+metallic = 0.0
 
 [node name="Soldier" type="CharacterBody3D"]
 collision_layer = 2
@@ -34,12 +42,12 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.75, 0)
 shape = SubResource("Cap")
 
 [node name="Body" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.68, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.65, 0)
 mesh = SubResource("BodyMesh")
 surface_material_override/0 = SubResource("MatBody")
 
 [node name="Head" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.35, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.32, 0)
 mesh = SubResource("HeadMesh")
 surface_material_override/0 = SubResource("MatHead")
 

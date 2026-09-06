@@ -1,6 +1,6 @@
 # Realm of Kings
 
-Godot 4.7 Forward+ vertical slice (Jolt Physics). RimWorld-like low-poly county demo at **Ashford** — not Minecraft voxels.
+Godot 4.7 Forward+ vertical slice (Jolt Physics). **v0.1** strategy-first county demo at **Ashford** — RimWorld-like low-poly silhouettes, not Minecraft voxels.
 
 ## Requirements
 - Godot 4.7+ (tested with 4.7.2)
@@ -13,26 +13,31 @@ Godot 4.7 Forward+ vertical slice (Jolt Physics). RimWorld-like low-poly county 
 3. Main scene is already `res://scenes/main.tscn`.
 4. Press **F5** (Play).
 
-## Controls
-- **WASD** — walk Baron Aldric Ashford
-- **Mouse wheel** — zoom street <-> regional
+## Controls (v0.1)
+- **WASD** — walk Baron Aldric Ashford (best at Street zoom)
+- **Mouse wheel** — zoom **Strategy** (default/home) ↔ **Street**
 - **Q / E** — orbit camera
 - **LMB** — select person / army (inspector)
 - **RMB** — order army to ground point
-- **R** or **Raise Levy** — muster 4-8 real soldiers
-- **Space** — pause/unpause
+- **R** or **Raise Levy** — convert 4–8 existing villagers into soldiers (they march to the keep yard). Named NPCs are never levied.
+- **P** — pause/unpause
 - **Esc** — quit
 
+## Player fantasy
+You open in a **strategy overview** of Ashford. Raise levies by calling villagers to arms — population is conserved (People −N, Army +N). Zoom down to street to walk the ruler.
+
 ## What you should see
-- Ashford settlement (keep, market, houses, farms)
-- Named NPCs + wandering villagers as real entities
-- Controllable ruler
-- Tiny army of real units that muster and march
-- HUD counts from live group membership
+- Strategy-height camera by default (CK3 / RimWorld map feel)
+- Ashford settlement with clear building footprints and pitched roofs
+- Pawn silhouettes (body + head) for people
+- 5 named NPCs + ~16 wandering villagers
+- Raise Levy converts villagers → soldiers (no spawn-from-nowhere)
+- HUD: **People** = civilians only (NPCs + villagers); **Army** = soldiers
+- Dynasty / title stubs on the HUD
 
 ## Layout
 ```
-design/     V0 brief
+design/     V0 brief (v0.1 design lock)
 data/       Dynasty / title / realm stubs
 scripts/    units, army, camera, ui, world
 scenes/     main, entities, world

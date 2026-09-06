@@ -14,8 +14,9 @@ func _ready() -> void:
 func summary_line() -> String:
 	return "%s - %s" % [dynasty.name, title.name]
 
+## People HUD = civilians only (named NPCs + villagers). Soldiers never counted here.
 func count_people() -> int:
-	return get_tree().get_nodes_in_group("people").size()
+	return count_npcs() + count_villagers()
 
 func count_army() -> int:
 	return get_tree().get_nodes_in_group("soldiers").size()

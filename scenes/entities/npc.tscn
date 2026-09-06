@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=9 format=3]
 
 [ext_resource type="Script" path="res://scripts/units/npc_controller.gd" id="1"]
 
@@ -6,20 +6,26 @@
 radius = 0.32
 height = 1.55
 
-[sub_resource type="BoxMesh" id="BodyMesh"]
-size = Vector3(0.6, 1.0, 0.4)
+[sub_resource type="CapsuleMesh" id="BodyMesh"]
+radius = 0.3
+height = 1.0
 
 [sub_resource type="StandardMaterial3D" id="MatBody"]
 albedo_color = Color(0.55, 0.42, 0.32, 1)
+roughness = 1.0
+metallic = 0.0
 
-[sub_resource type="BoxMesh" id="HeadMesh"]
-size = Vector3(0.4, 0.4, 0.4)
+[sub_resource type="SphereMesh" id="HeadMesh"]
+radius = 0.22
+height = 0.44
 
 [sub_resource type="StandardMaterial3D" id="MatHead"]
 albedo_color = Color(0.86, 0.7, 0.55, 1)
+roughness = 1.0
+metallic = 0.0
 
 [sub_resource type="BoxMesh" id="AccentMesh"]
-size = Vector3(0.65, 0.15, 0.42)
+size = Vector3(0.62, 0.14, 0.4)
 
 [sub_resource type="SphereShape3D" id="SelectShape"]
 radius = 0.9
@@ -34,17 +40,17 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.78, 0)
 shape = SubResource("Cap")
 
 [node name="Body" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.7, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.68, 0)
 mesh = SubResource("BodyMesh")
 surface_material_override/0 = SubResource("MatBody")
 
 [node name="Head" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.4, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.38, 0)
 mesh = SubResource("HeadMesh")
 surface_material_override/0 = SubResource("MatHead")
 
 [node name="Accent" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.15, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.12, 0)
 mesh = SubResource("AccentMesh")
 
 [node name="SelectArea" type="Area3D" parent="."]

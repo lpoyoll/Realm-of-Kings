@@ -1,5 +1,5 @@
 extends CanvasLayer
-## HUD: dynasty/title, people & army counts from live nodes, muster, zoom, time scale.
+## HUD: dynasty/title, civilian People + Army counts, muster, zoom Strategy/Street, time scale.
 
 @onready var dynasty_label: Label = %DynastyLabel
 @onready var counts_label: Label = %CountsLabel
@@ -46,18 +46,9 @@ func _process(_delta: float) -> void:
 func _refresh() -> void:
 	if dynasty_label and is_instance_valid(GameData):
 		dynasty_label.text = GameData.summary_line()
-	# AC9: counts come from live groups / army list — never magic numbers.
+	# People = civilians only (npcs + villagers). Army = soldiers on map.
 	var people_n := GameData.count_people() if is_instance_valid(GameData) else 0
-	var army_n := 0
-	if army and army.has_method("get_count"):
-		army_n = army.get_count()
-	elif is_instance_valid(GameData):
-		army_n = GameData.count_army()
-	else:
-		army_n = get_tree().get_nodes_in_group("soldiers").size()
-	# Keep army HUD aligned with soldier nodes on the map.
-	var soldiers_on_map := get_tree().get_nodes_in_group("soldiers").size()
-	army_n = soldiers_on_map
+	var army_n := get_tree().get_nodes_in_group("soldiers").size()
 	if counts_label:
 		counts_label.text = "People: %d   Army: %d" % [people_n, army_n]
 	if zoom_label and camera_rig and camera_rig.has_method("get_zoom_label"):

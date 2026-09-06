@@ -9,7 +9,6 @@ extends CharacterBody3D
 var _gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 
 func _ready() -> void:
-	add_to_group("people")
 	add_to_group("ruler")
 	if has_node("NameLabel"):
 		($NameLabel as Label3D).text = display_name

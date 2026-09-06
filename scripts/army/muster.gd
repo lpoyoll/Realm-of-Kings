@@ -1,7 +1,6 @@
 extends Node
-## Raise Levy (R): spawn 4–8 soldiers at houses/farms, path to keep yard, register with army.
-## Only one muster (or top-up to max once). Skip disband.
-## Soldiers join the army list immediately so HUD counts match map entities (AC9).
+## Raise Levy (R): convert existing villagers into soldiers (no spawn-from-nowhere).
+## Population conserved: People -N, Army +N. Named NPCs are never levy fodder.
 
 const SOLDIER_SCENE := preload("res://scenes/entities/soldier.tscn")
 
@@ -10,12 +9,12 @@ const SOLDIER_SCENE := preload("res://scenes/entities/soldier.tscn")
 
 var army: Node3D
 var muster_point: Marker3D
-var spawn_points: Array[Vector3] = []
+var spawn_points: Array[Vector3] = [] # unused for conversion; kept for setup API compat
 var _mustered: bool = false
 
 signal muster_finished(count: int)
 
-func setup(army_node: Node3D, point: Marker3D, spawns: Array[Vector3]) -> void:
+func setup(army_node: Node3D, point: Marker3D, spawns: Array[Vector3] = []) -> void:
 	army = army_node
 	muster_point = point
 	spawn_points = spawns
@@ -23,39 +22,66 @@ func setup(army_node: Node3D, point: Marker3D, spawns: Array[Vector3]) -> void:
 func can_muster() -> bool:
 	if army == null:
 		return false
-	if _mustered and army.get_count() >= max_levy:
+	if army.get_count() >= max_levy:
+		return false
+	var villagers := get_tree().get_nodes_in_group("villagers")
+	if villagers.is_empty():
 		return false
 	return true
 
 func raise_levy() -> void:
 	if not can_muster():
 		return
-	var current := 0
-	if army:
-		current = army.get_count()
-	var target_total := max_levy if _mustered else randi_range(min_levy, max_levy)
-	var need := clampi(target_total - current, 0, max_levy)
+	var current := army.get_count() if army else 0
+	if current >= max_levy:
+		_mustered = true
+		return
+
+	var desired := randi_range(min_levy, max_levy)
+	var need := clampi(desired - current, 0, max_levy - current)
 	if need <= 0:
 		_mustered = true
 		return
 
+	var villagers: Array = get_tree().get_nodes_in_group("villagers")
+	# Prefer living, freeable bodies only
+	villagers = villagers.filter(func(v: Node) -> bool: return v != null and is_instance_valid(v))
+	if villagers.is_empty():
+		return
+
+	# Shuffle then take up to need (convert what's available if under 4)
+	villagers.shuffle()
+	var take := mini(need, villagers.size())
+	if take <= 0:
+		return
+
 	var yard: Vector3 = muster_point.global_position if muster_point else Vector3(0, 0.2, -7)
-	for i in need:
+	var parent_node: Node = get_parent()
+	var converted := 0
+
+	for i in take:
+		var villager: Node = villagers[i]
+		if villager == null or not is_instance_valid(villager):
+			continue
+		var pos: Vector3 = (villager as Node3D).global_position if villager is Node3D else yard
+		pos.y = 0.2
+
+		# Remove civilian from tree/groups before creating soldier
+		if villager.is_in_group("villagers"):
+			villager.remove_from_group("villagers")
+		if villager.is_in_group("people"):
+			villager.remove_from_group("people")
+		villager.queue_free()
+
 		var soldier: CharacterBody3D = SOLDIER_SCENE.instantiate()
-		var spawn: Vector3
-		if spawn_points.size() > 0:
-			spawn = spawn_points[(current + i) % spawn_points.size()]
-		else:
-			spawn = yard + Vector3(randf_range(-6, 6), 0, randf_range(4, 10))
-		spawn.y = 0.2
-		# Add under main briefly so transform is valid, then register (reparents into army).
-		get_parent().add_child(soldier)
-		soldier.global_position = spawn
-		var slot := Vector3(((current + i) % 4 - 1.5) * 1.3, 0.0, float((current + i) / 4) * 1.3)
+		parent_node.add_child(soldier)
+		soldier.global_position = pos
+		var slot := Vector3(((current + converted) % 4 - 1.5) * 1.3, 0.0, float((current + converted) / 4) * 1.3)
 		if army and army.has_method("register_soldier"):
 			army.register_soldier(soldier)
 		if soldier.has_method("set_order"):
 			soldier.set_order(yard, slot)
+		converted += 1
 
 	_mustered = true
 	if army:

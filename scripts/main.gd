@@ -1,5 +1,5 @@
 extends Node3D
-## V0 entry: Ashford settlement, ruler, NPCs, villagers, camera, HUD, muster, army.
+## V0.1 entry: Ashford settlement, ruler, NPCs, villagers, strategy camera, HUD, muster, army.
 
 const SETTLEMENT_SCENE := preload("res://scenes/world/settlement_ashford.tscn")
 const RULER_SCENE := preload("res://scenes/entities/ruler.tscn")
@@ -55,12 +55,18 @@ func _spawn_npcs() -> void:
 		npc.global_position = d.pos
 
 func _spawn_villagers() -> void:
-	var names := ["Bram", "Elsa", "Tomlin", "Nessa", "Hud", "Petra", "Owen", "Kira", "Joss", "Willa", "Edda", "Rolf"]
+	# ~16 villagers so a levy of 4–8 leaves civilians remaining
+	var names := [
+		"Bram", "Elsa", "Tomlin", "Nessa", "Hud", "Petra", "Owen", "Kira",
+		"Joss", "Willa", "Edda", "Rolf", "Mara", "Seth", "Lina", "Garr"
+	]
 	var spots := [
 		Vector3(-9, 0.2, 1), Vector3(-4, 0.2, 7), Vector3(9, 0.2, 2),
 		Vector3(12, 0.2, -2), Vector3(-11, 0.2, -6), Vector3(5, 0.2, 8),
 		Vector3(-2, 0.2, -5), Vector3(3, 0.2, 3), Vector3(-14, 0.2, 5),
-		Vector3(16, 0.2, 7), Vector3(-7, 0.2, 10), Vector3(10, 0.2, -7)
+		Vector3(16, 0.2, 7), Vector3(-7, 0.2, 10), Vector3(10, 0.2, -7),
+		Vector3(-15, 0.2, -1), Vector3(15, 0.2, 4), Vector3(1, 0.2, 10),
+		Vector3(-6, 0.2, -8)
 	]
 	for i in mini(names.size(), spots.size()):
 		var v = VILLAGER_SCENE.instantiate()
@@ -88,7 +94,7 @@ func _spawn_army_and_muster() -> void:
 	muster.setup(army, marker, spawns)
 	muster.muster_finished.connect(func(c: int) -> void:
 		if hud:
-			hud.set_status("Levy mustered: %d soldiers" % c)
+			hud.set_status("Levy mustered: %d soldiers (converted from villagers)" % c)
 	)
 
 func _setup_camera() -> void:
@@ -96,6 +102,11 @@ func _setup_camera() -> void:
 	camera_rig = cam_script.new()
 	camera_rig.name = "ZoomCamera"
 	camera_rig.follow = ruler
+	# Strategy default follows settlement center
+	if settlement and settlement.has_method("get_settlement_focus"):
+		camera_rig.settlement_focus = settlement.get_settlement_focus()
+	elif settlement:
+		camera_rig.settlement_focus = settlement
 	add_child(camera_rig)
 
 func _setup_ui() -> void:
@@ -110,9 +121,13 @@ func _do_muster() -> void:
 	if muster and muster.has_method("raise_levy"):
 		if muster.can_muster():
 			muster.raise_levy()
-			hud.set_status("Raising levy - soldiers pathing to keep yard")
+			hud.set_status("Raising levy — villagers converting to soldiers")
 		else:
-			hud.set_status("Levy already mustered")
+			var villagers_left := get_tree().get_nodes_in_group("villagers").size()
+			if villagers_left == 0:
+				hud.set_status("No villagers left to levy")
+			else:
+				hud.set_status("Levy already at capacity")
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):
@@ -140,14 +155,13 @@ func _try_select() -> void:
 	var collider: Object = hit.get("collider")
 	var node: Node = collider as Node
 	while node:
-		if node.is_in_group("npcs") or node.is_in_group("ruler") or node.is_in_group("soldiers") or node == army:
+		if node.is_in_group("npcs") or node.is_in_group("ruler") or node.is_in_group("soldiers") or node.is_in_group("villagers") or node == army:
 			_select(node)
 			return
 		if node.has_method("get_inspect_data"):
 			_select(node)
 			return
 		node = node.get_parent()
-	# Click ground clears / or select army if near soldiers
 	selected = null
 	if inspector:
 		inspector.clear()

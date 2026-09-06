@@ -1,5 +1,6 @@
 extends CharacterBody3D
 ## Steel-colored levy soldier. Direct steering toward formation slot (v0 nav-friendly).
+## Groups: soldiers only — never "people" (People HUD = civilians).
 
 @export var move_speed: float = 5.0
 @export var display_name: String = "Levy Soldier"
@@ -15,8 +16,12 @@ var _gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 @onready var agent: NavigationAgent3D = get_node_or_null("NavigationAgent3D") as NavigationAgent3D
 
 func _ready() -> void:
-	add_to_group("people")
 	add_to_group("soldiers")
+	# Explicitly ensure we are not counted as civilians
+	if is_in_group("people"):
+		remove_from_group("people")
+	if is_in_group("villagers"):
+		remove_from_group("villagers")
 	if agent:
 		agent.path_desired_distance = 0.5
 		agent.target_desired_distance = 0.5

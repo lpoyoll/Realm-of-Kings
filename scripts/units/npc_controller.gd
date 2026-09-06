@@ -1,5 +1,6 @@
 extends CharacterBody3D
 ## Named NPC with nameplate, role/opinion stubs, and light idle wander.
+## Not levy fodder — group "npcs" only.
 
 @export var display_name: String = "NPC"
 @export var role: String = "Courtier"
@@ -14,7 +15,6 @@ var _wait: float = 0.0
 var _gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 
 func _ready() -> void:
-	add_to_group("people")
 	add_to_group("npcs")
 	_home = global_position
 	_pick_target()
@@ -67,7 +67,8 @@ func _apply_accent() -> void:
 		var mi := $Accent as MeshInstance3D
 		var mat := StandardMaterial3D.new()
 		mat.albedo_color = accent_color
-		mat.roughness = 0.8
+		mat.roughness = 1.0
+		mat.metallic = 0.0
 		mi.material_override = mat
 
 func _ensure_label() -> void:

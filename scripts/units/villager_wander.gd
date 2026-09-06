@@ -1,5 +1,5 @@
 extends CharacterBody3D
-## Simple villager body with idle wander.
+## Simple villager body with idle wander. Levy pool for Raise Levy.
 
 @export var display_name: String = "Villager"
 @export var role: String = "Villager"
@@ -13,7 +13,6 @@ var _wait: float = 0.0
 var _gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 
 func _ready() -> void:
-	add_to_group("people")
 	add_to_group("villagers")
 	_home = global_position
 	_pick_target()
