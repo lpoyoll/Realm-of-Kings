@@ -1132,6 +1132,16 @@ func _build_intrigue_window() -> void:
 	mur.custom_minimum_size = Vector2(0, 30)
 	_intrigue_schemes.add_child(mur)
 
+	# Seduce - Coming
+	var sed := Button.new()
+	sed.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	sed.text = "Seduce - Coming"
+	sed.tooltip_text = "Coming"
+	sed.disabled = true
+	sed.theme_type_variation = "ComingButton"
+	sed.custom_minimum_size = Vector2(0, 30)
+	_intrigue_schemes.add_child(sed)
+
 	v.add_child(_section_header("Hooks / Secrets"))
 	_intrigue_hooks_box = VBoxContainer.new()
 	_intrigue_hooks_box.name = "IntrigueHooks"
@@ -1243,12 +1253,12 @@ func _on_sway_start() -> void:
 	var bumped: bool = false
 	if "opinion" in target:
 		var cur: int = int(target.opinion)
-		target.opinion = clampi(cur + 5, 0, 100)
+		target.opinion = clampi(cur + 1, 0, 100)
 		bumped = true
 	if sel_kind == SelKind.CHARACTER and selected != null and is_instance_valid(selected) and selected == target:
 		_populate_character(selected)
 	if bumped:
-		set_status("Sway started on %s — opinion +5." % pname)
+		set_status("Sway started on %s — opinion +1." % pname)
 	else:
 		set_status("Sway started on %s." % pname)
 
