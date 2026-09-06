@@ -78,6 +78,9 @@ var _military_modal: PanelContainer
 var _military_levy_label: Label
 var _military_marshal_label: Label
 
+var _decisions_modal: PanelContainer
+var _decisions_rows: VBoxContainer
+
 func _ready() -> void:
 	_build_styles()
 	_build_ui()
@@ -240,6 +243,7 @@ func _build_ui() -> void:
 	_build_stub_modal()
 	_build_council_window()
 	_build_military_window()
+	_build_decisions_window()
 
 func _build_top_bar() -> void:
 	var top := PanelContainer.new()
@@ -301,7 +305,7 @@ func _build_top_bar() -> void:
 		var b := Button.new()
 		b.text = str(n)
 		var title_name: String = str(n)
-		var is_live: bool = title_name == "Council" or title_name == "Military"
+		var is_live: bool = title_name == "Council" or title_name == "Military" or title_name == "Decisions"
 		if is_live:
 			b.tooltip_text = title_name
 		else:
@@ -502,12 +506,17 @@ func _open_stub_window(title_text: String) -> void:
 	if title_text == "Military":
 		_open_military_window()
 		return
+	if title_text == "Decisions":
+		_open_decisions_window()
+		return
 	if _stub_modal == null:
 		return
 	if _council_modal:
 		_council_modal.visible = false
 	if _military_modal:
 		_military_modal.visible = false
+	if _decisions_modal:
+		_decisions_modal.visible = false
 	_stub_modal_title.text = title_text
 	_stub_modal_body.text = "Coming — %s window stub (Horizon B)." % title_text
 	_stub_modal.visible = true
@@ -580,6 +589,8 @@ func _open_council_window() -> void:
 		_stub_modal.visible = false
 	if _military_modal:
 		_military_modal.visible = false
+	if _decisions_modal:
+		_decisions_modal.visible = false
 	_refresh_council_rows()
 	_council_modal.visible = true
 	set_status("Council")
@@ -724,6 +735,8 @@ func _open_military_window() -> void:
 		_stub_modal.visible = false
 	if _council_modal:
 		_council_modal.visible = false
+	if _decisions_modal:
+		_decisions_modal.visible = false
 	_refresh_military_levy()
 	_military_modal.visible = true
 	set_status("Military")
@@ -741,6 +754,111 @@ func _refresh_military_levy() -> void:
 	else:
 		count = get_tree().get_nodes_in_group("soldiers").size()
 	_military_levy_label.text = "Raised: %d (on map)" % count
+
+func _build_decisions_window() -> void:
+	_decisions_modal = PanelContainer.new()
+	_decisions_modal.name = "DecisionsModal"
+	_decisions_modal.add_theme_stylebox_override("panel", _modal_style)
+	_decisions_modal.mouse_filter = Control.MOUSE_FILTER_STOP
+	_decisions_modal.visible = false
+	_decisions_modal.set_anchors_preset(Control.PRESET_CENTER)
+	_decisions_modal.offset_left = -260
+	_decisions_modal.offset_top = -200
+	_decisions_modal.offset_right = 260
+	_decisions_modal.offset_bottom = 200
+	_root.add_child(_decisions_modal)
+
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 8)
+	_decisions_modal.add_child(v)
+
+	var header := HBoxContainer.new()
+	header.add_theme_constant_override("separation", 12)
+	v.add_child(header)
+	header.add_child(_label("Decisions", 18, Color(0.95, 0.90, 0.70)))
+	var spacer := Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	header.add_child(spacer)
+	var close_btn := Button.new()
+	close_btn.text = "Close"
+	_style_button(close_btn)
+	close_btn.pressed.connect(_close_decisions_window)
+	header.add_child(close_btn)
+
+	v.add_child(_label("Personal decisions (panel stub — no map bodies).", 11, Color(0.55, 0.52, 0.48)))
+
+	_decisions_rows = VBoxContainer.new()
+	_decisions_rows.name = "DecisionsRows"
+	_decisions_rows.add_theme_constant_override("separation", 6)
+	v.add_child(_decisions_rows)
+
+	_add_decision_row("Hold Court", "Grant audiences; small opinion bump for councillors.", true, _on_hold_court)
+	_add_decision_row("Host Feast", "Spend a little gold to host a feast (toast stub).", true, _on_host_feast)
+	_add_decision_row("Invite Knights", "Coming", false, Callable())
+	_add_decision_row("Send Gift", "Coming", false, Callable())
+
+func _add_decision_row(title_text: String, hint: String, enabled: bool, on_press: Callable) -> void:
+	if _decisions_rows == null:
+		return
+	var row := Button.new()
+	row.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	if enabled:
+		row.text = title_text
+		row.tooltip_text = hint
+		row.disabled = false
+		if on_press.is_valid():
+			row.pressed.connect(on_press)
+	else:
+		row.text = "%s — Coming" % title_text
+		row.tooltip_text = "Coming"
+		row.disabled = true
+	_style_button(row)
+	_decisions_rows.add_child(row)
+
+func _open_decisions_window() -> void:
+	if _decisions_modal == null:
+		_build_decisions_window()
+	if _stub_modal:
+		_stub_modal.visible = false
+	if _council_modal:
+		_council_modal.visible = false
+	if _military_modal:
+		_military_modal.visible = false
+	_decisions_modal.visible = true
+	set_status("Decisions")
+
+func _close_decisions_window() -> void:
+	if _decisions_modal:
+		_decisions_modal.visible = false
+
+func _on_hold_court() -> void:
+	var bumped: int = 0
+	for job in _CouncilDataScript.job_defs():
+		var appointee: Node = _CouncilDataScript.resolve_appointee(get_tree(), job)
+		if appointee == null or not is_instance_valid(appointee):
+			continue
+		if "opinion" in appointee:
+			var cur: int = int(appointee.opinion)
+			appointee.opinion = clampi(cur + 2, 0, 100)
+			bumped += 1
+	if sel_kind == SelKind.CHARACTER and selected != null and is_instance_valid(selected):
+		_populate_character(selected)
+	if bumped > 0:
+		set_status("Held court — councillor opinion +2 (%d)." % bumped)
+	else:
+		set_status("Held court — no councillors to impress.")
+
+func _on_host_feast() -> void:
+	var cost: int = 10
+	if is_instance_valid(GameData):
+		if GameData.gold >= cost:
+			GameData.gold -= cost
+			set_status("Hosted a feast (-%d gold)." % cost)
+		else:
+			set_status("Hosted a feast (not enough gold for %d stub cost)." % cost)
+	else:
+		set_status("Hosted a feast.")
 
 func _build_bottom_bar() -> void:
 	var bottom := PanelContainer.new()
