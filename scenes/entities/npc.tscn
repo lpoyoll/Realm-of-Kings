@@ -6,26 +6,25 @@
 radius = 0.32
 height = 1.55
 
-[sub_resource type="CapsuleMesh" id="BodyMesh"]
-radius = 0.3
-height = 1.0
+[sub_resource type="BoxMesh" id="BodyMesh"]
+size = Vector3(0.5, 0.88, 0.34)
 
 [sub_resource type="StandardMaterial3D" id="MatBody"]
-albedo_color = Color(0.55, 0.42, 0.32, 1)
+albedo_color = Color(0.48, 0.40, 0.32, 1)
 roughness = 1.0
 metallic = 0.0
 
 [sub_resource type="SphereMesh" id="HeadMesh"]
-radius = 0.22
-height = 0.44
+radius = 0.2
+height = 0.4
 
 [sub_resource type="StandardMaterial3D" id="MatHead"]
-albedo_color = Color(0.86, 0.7, 0.55, 1)
+albedo_color = Color(0.82, 0.68, 0.52, 1)
 roughness = 1.0
 metallic = 0.0
 
 [sub_resource type="BoxMesh" id="AccentMesh"]
-size = Vector3(0.62, 0.14, 0.4)
+size = Vector3(0.58, 0.14, 0.36)
 
 [sub_resource type="SphereShape3D" id="SelectShape"]
 radius = 0.9
@@ -40,17 +39,17 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.78, 0)
 shape = SubResource("Cap")
 
 [node name="Body" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.68, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.65, 0)
 mesh = SubResource("BodyMesh")
 surface_material_override/0 = SubResource("MatBody")
 
 [node name="Head" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.38, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.32, 0)
 mesh = SubResource("HeadMesh")
 surface_material_override/0 = SubResource("MatHead")
 
 [node name="Accent" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.12, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.05, 0)
 mesh = SubResource("AccentMesh")
 
 [node name="SelectArea" type="Area3D" parent="."]
