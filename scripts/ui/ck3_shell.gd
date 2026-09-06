@@ -1,4 +1,5 @@
 extends CanvasLayer
+const _CouncilDataScript = preload("res://data/council.gd")
 ## CK3-like UI shell: top bar, outliner, side panel, bottom speed/alerts.
 ## Mouse: panels STOP clicks; empty center IGNORE so the 3D map receives picks.
 ## Selection bus: select_holding / select_character / select_army (map + outliner).
@@ -68,6 +69,10 @@ var _army_body: Label
 var _stub_modal: PanelContainer
 var _stub_modal_title: Label
 var _stub_modal_body: Label
+
+var _council_modal: PanelContainer
+var _council_liege: Label
+var _council_rows: VBoxContainer
 
 func _ready() -> void:
 	_build_styles()
@@ -227,6 +232,7 @@ func _build_ui() -> void:
 	_build_side_panel()
 	_build_bottom_bar()
 	_build_stub_modal()
+	_build_council_window()
 
 func _build_top_bar() -> void:
 	var top := PanelContainer.new()
@@ -479,8 +485,13 @@ func _build_stub_modal() -> void:
 	v.add_child(close_btn)
 
 func _open_stub_window(title_text: String) -> void:
+	if title_text == "Council":
+		_open_council_window()
+		return
 	if _stub_modal == null:
 		return
+	if _council_modal:
+		_council_modal.visible = false
 	_stub_modal_title.text = title_text
 	_stub_modal_body.text = "Coming — %s window stub (Horizon B)." % title_text
 	_stub_modal.visible = true
@@ -489,6 +500,117 @@ func _open_stub_window(title_text: String) -> void:
 func _close_stub_window() -> void:
 	if _stub_modal:
 		_stub_modal.visible = false
+
+func _build_council_window() -> void:
+	_council_modal = PanelContainer.new()
+	_council_modal.name = "CouncilModal"
+	_council_modal.add_theme_stylebox_override("panel", _modal_style)
+	_council_modal.mouse_filter = Control.MOUSE_FILTER_STOP
+	_council_modal.visible = false
+	_council_modal.set_anchors_preset(Control.PRESET_CENTER)
+	_council_modal.offset_left = -260
+	_council_modal.offset_top = -200
+	_council_modal.offset_right = 260
+	_council_modal.offset_bottom = 200
+	_root.add_child(_council_modal)
+
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 8)
+	_council_modal.add_child(v)
+
+	var header := HBoxContainer.new()
+	header.add_theme_constant_override("separation", 12)
+	v.add_child(header)
+	header.add_child(_label("Council", 18, Color(0.95, 0.90, 0.70)))
+	var spacer := Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	header.add_child(spacer)
+	var close_btn := Button.new()
+	close_btn.text = "Close"
+	_style_button(close_btn)
+	close_btn.pressed.connect(_close_council_window)
+	header.add_child(close_btn)
+
+	_council_liege = _label("Liege: —", 13, Color(0.75, 0.80, 0.70))
+	_council_liege.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	v.add_child(_council_liege)
+
+	var col_hdr := HBoxContainer.new()
+	col_hdr.add_theme_constant_override("separation", 8)
+	v.add_child(col_hdr)
+	var job_h := _label("Job", 12, Color(0.72, 0.68, 0.55))
+	job_h.custom_minimum_size = Vector2(120, 0)
+	col_hdr.add_child(job_h)
+	var name_h := _label("Appointee", 12, Color(0.72, 0.68, 0.55))
+	name_h.custom_minimum_size = Vector2(150, 0)
+	name_h.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	col_hdr.add_child(name_h)
+	var task_h := _label("Task", 12, Color(0.72, 0.68, 0.55))
+	task_h.custom_minimum_size = Vector2(130, 0)
+	col_hdr.add_child(task_h)
+
+	_council_rows = VBoxContainer.new()
+	_council_rows.name = "CouncilRows"
+	_council_rows.add_theme_constant_override("separation", 4)
+	v.add_child(_council_rows)
+
+	v.add_child(_label("Click a councillor to open their dossier.", 11, Color(0.55, 0.52, 0.48)))
+
+func _open_council_window() -> void:
+	if _council_modal == null:
+		_build_council_window()
+	if _stub_modal:
+		_stub_modal.visible = false
+	_refresh_council_rows()
+	_council_modal.visible = true
+	set_status("Council")
+
+func _close_council_window() -> void:
+	if _council_modal:
+		_council_modal.visible = false
+
+func _refresh_council_rows() -> void:
+	if _council_rows == null:
+		return
+	_clear_box(_council_rows)
+
+	# Liege header from ruler group
+	var liege_name := "—"
+	var rulers: Array = get_tree().get_nodes_in_group("ruler")
+	if rulers.size() > 0 and is_instance_valid(rulers[0]):
+		liege_name = _CouncilDataScript.person_display_name(rulers[0])
+		if liege_name.is_empty():
+			liege_name = str(rulers[0].name)
+	if _council_liege:
+		_council_liege.text = "Liege: %s" % liege_name
+
+	for job in _CouncilDataScript.job_defs():
+		var job_label: String = str(job.get("label", "Job"))
+		var task_label: String = str(job.get("task", "—"))
+		var appointee: Node = _CouncilDataScript.resolve_appointee(get_tree(), job)
+		var appointee_name := "Vacant"
+		var has_appointee: bool = false
+		if appointee != null and is_instance_valid(appointee):
+			has_appointee = true
+			appointee_name = _CouncilDataScript.person_display_name(appointee)
+			if appointee_name.is_empty():
+				appointee_name = str(appointee.name)
+
+		var row := Button.new()
+		row.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		row.text = "%s   |   %s   |   %s" % [job_label, appointee_name, task_label]
+		row.tooltip_text = "%s — %s (%s)" % [job_label, appointee_name, task_label]
+		_style_button(row)
+		if has_appointee:
+			var captured: Node = appointee
+			row.pressed.connect(func() -> void:
+				select_character(captured)
+				set_status("Council -> %s" % _CouncilDataScript.person_display_name(captured))
+			)
+		else:
+			row.disabled = true
+		_council_rows.add_child(row)
 
 func _build_bottom_bar() -> void:
 	var bottom := PanelContainer.new()

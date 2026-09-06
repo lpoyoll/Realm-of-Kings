@@ -28,6 +28,7 @@ The HUD is a CK3-like chrome frame over the continuous 3D map:
 1. **Raise Levy** — select Ashford (map or outliner) → side panel → **Raise Levy** button. Converts 4–8 villagers into soldiers (People −N, Army +N). Named NPCs are never levied. **R** remains an optional shortcut only.
 2. **Move army** — select the army (banner/bodies or outliner) → side panel shows *Right-click map to move* → **RMB** on ground.
 3. **Inspect character** — select ruler/NPC (map or outliner) → name / role / opinion / traits / education / skills → **Go to** pans/follows.
+4. **Council** — top-bar **Council** → panel lists five jobs with live appointees; click a councillor to update the character dossier (panel stays open).
 
 ### Controls
 - **WASD** — walk Baron Aldric Ashford (best at Street zoom)
@@ -51,11 +52,12 @@ You open in a **strategy overview** of Ashford with CK3-style panels. Raise levi
 - People = civilians only (NPCs + villagers); Army = soldiers
 - Dynasty / title / vitals stubs on the top bar
 - Character dossier shows traits / education / skills stubs (per person)
+- **Council** top-bar icon opens a Council window stub: Chancellor / Steward / Marshal / Spymaster / Court Chaplain assigned to existing NPCs (Mira Goods, Steward Corvin, Captain Rhea, Elowen Ashford, Father Alden). Click a row to select that person in the side dossier (traits still work). Other icons stay Coming stubs.
 
 ## Layout
 ```
 design/     V0 brief + CK3_UI_TARGET.md
-data/       Dynasty / title / realm + vitals stubs
+data/       Dynasty / title / realm / council + vitals stubs
 scripts/    units, army, camera, ui (ck3_shell), world
 scenes/     main, entities, world
 ui/         ck3_shell.tscn (+ legacy hud/inspector)
