@@ -1,6 +1,6 @@
 # Realm of Kings — CK3 UI & Feature Target
 
-**Status:** PRODUCT LOCK (Ignis via Paul, 2026-09-06) — **CK3 with a living visual world**; not RTS, not village-walker  
+**Status:** PRODUCT LOCK + **UI visual bar** (Ignis via Paul, 2026-09-06) — CK3 finish over new stubs  
 **Engine:** Godot 4 Control shell over continuous world  
 **Art under map:** RimWorld-readable low-poly (v0.1)  
 **Reference:** Crusader Kings III UI/IA (screenshots welcome; no ripped Paradox assets in-game)
@@ -41,9 +41,72 @@ So: systems land *into* the UI first (stub window OK), then gain simulation dept
 1. Primary play surface = grand-strategy chrome (top bar, outliner, character/holding/army panels, decisions). Map clicks **serve the UI**.
 2. No RTS feel — if a feature makes it feel like commanding an RTS battalion, cut or redesign.
 3. Visual world proves physicalisation (levies from real villagers, people exist). Camera/default UX stays strategy/CK3.
-4. Next build priority after shell green: **deepen CK3 shell** (character panel, holding panel, outliner selection) — **not** more street-level control.
+4. **Now:** meet the UI visual bar on existing chrome before more Horizon B stubs. Street/RTS still out.
 
 QA judges future smokes on **CK3-feel**, not RTS completeness.
+
+---
+
+## UI visual bar (CK3 finish — NOW)
+
+**Priority override:** Pause new Horizon B windows (Court / Intrigue / more Decisions) until existing chrome passes this bar. Wiring without finish reads as a school project.
+
+### What “done” looks like (reference CK3, no Paradox assets)
+
+| Area | Fail (current risk) | Pass |
+|------|---------------------|------|
+| Panels | Default Godot grey/`Button` | Dark stone + parchment panels, 1px gold/bronze rim, soft inner shadow |
+| Type | Default theme font, mixed sizes | One UI font family; clear hierarchy: title 18–20, section 14, body 12, mute 11 |
+| Top bar | Flat labels, uneven gaps | Fixed height ~44px, vitals as chip/badge, dynasty as crest+name chip, icon row evenly spaced |
+| Outliner | Raw item list | Section headers, selected row accent bar, hover state, readable role sublines |
+| Dossier | Stacked Label spam | Portrait placeholder (64–96px color block / silhouette), title block, trait chips, skill row with icons or abbreviations |
+| Council / Military | Utility buttons | Same panel language; primary CTA styled (Raise Levy); disabled = muted not grey-Godot |
+| Spacing | Cramped or random | 8px grid; 12–16px panel padding; consistent row height ~28–32px |
+| Map vs UI | UI fights picks / looks pasted on | Gutters only; center map clear; panels ~85–92% opacity dark, not neon |
+
+### Palette (ship these tokens)
+
+```text
+bg_panel     #1a1510
+bg_panel_2   #241c14
+bg_inset     #0e0b08
+rim_gold     #8a7038
+text_primary #e8dcc0
+text_mute    #9a8b70
+accent       #c4a35a
+danger       #8b3a3a
+positive     #3d6b45
+```
+
+### Portrait / crest placeholders
+
+- Character: rounded rect + initials or simple heraldic color — **not** a blank Button.
+- Dynasty chip: small shield color + house name.
+- Flag real portrait art as needed later; placeholders must still look intentional.
+
+### Explicitly forbidden until bar is met
+
+- Stock Godot `Button` / `Panel` look with no StyleBoxFlat theme
+- Hot-pink/debug colors, Comic fonts, uneven margins
+- New feature windows that don’t inherit the shared theme
+
+### Dev implementation order (visual pass)
+
+1. Shared `Theme` / StyleBoxFlat resources for panel, button primary/disabled, list row, chips.
+2. Apply to top bar + outliner + side dossier.
+3. Restyle Council + Military (+ Decisions if already merged) with the same theme.
+4. Portrait placeholders + trait chips on character dossier.
+5. Only then resume Court / Intrigue / richer Decisions.
+
+### QA smoke (visual)
+
+1. No default Godot chrome visible on main strategy screen.
+2. Top bar / outliner / dossier share one visual language.
+3. Raise Levy CTA reads as primary; Coming actions read as disabled-by-design.
+4. Still CK3-feel functionally (panel-first, counts = entities).
+5. Looks like a strategy game UI at a glance — not a student HUD.
+
+**UI/UX seat:** Owns theme polish, spacing, and CK3 density against this bar; Designer owns IA/flows; Dev implements.
 
 ---
 
