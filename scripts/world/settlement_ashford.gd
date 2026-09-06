@@ -10,6 +10,7 @@ var farm_spawns: Array[Vector3] = []
 var settlement_focus: Marker3D
 
 func _ready() -> void:
+	add_to_group("holdings")
 	_ensure_focus_marker()
 	_build()
 	_bake_flat_navmesh()
@@ -65,12 +66,12 @@ func _box(size: Vector3, pos: Vector3, color: Color, static_body: bool = true, r
 func _build() -> void:
 	_add_sun()
 	_add_environment()
-	# Ground — flat field
+	# Ground â€” flat field
 	_box(Vector3(70, 1, 70), Vector3(0, -0.5, 0), Color(0.36, 0.50, 0.30))
-	# Roads — clear footprints from above
+	# Roads â€” clear footprints from above
 	_box(Vector3(3.5, 0.08, 32), Vector3(0, 0.04, 0), Color(0.58, 0.48, 0.34), false)
 	_box(Vector3(24, 0.08, 3.2), Vector3(2, 0.04, 2), Color(0.58, 0.48, 0.34), false)
-	# Keep — solid footprint + flat roof plate + banner towers
+	# Keep â€” solid footprint + flat roof plate + banner towers
 	_box(Vector3(5.5, 5.0, 5.5), Vector3(0, 2.5, -12), Color(0.52, 0.52, 0.58))
 	_box(Vector3(6.4, 0.35, 6.4), Vector3(0, 5.2, -12), Color(0.38, 0.38, 0.44), false)
 	# Pitched keep roof ridge (rotated thin box)
@@ -98,12 +99,12 @@ func _build() -> void:
 	for i in house_spots.size():
 		_house(house_spots[i], i % 2 == 0)
 		house_spawns.append(house_spots[i] + Vector3(0, 0.2, 2.2))
-	# Farms (3) — flat patches + fence posts
+	# Farms (3) â€” flat patches + fence posts
 	var farms := [Vector3(-16, 0, 6), Vector3(-18, 0, -2), Vector3(18, 0, 8)]
 	for f in farms:
 		_farm(f)
 		farm_spawns.append(f + Vector3(0, 0.2, 0))
-	# Trees — simple trunk + canopy blob
+	# Trees â€” simple trunk + canopy blob
 	for p in [Vector3(-22, 0, -10), Vector3(22, 0, -14), Vector3(-20, 0, 14), Vector3(20, 0, 16), Vector3(0, 0, 20)]:
 		_tree(p)
 
@@ -113,7 +114,7 @@ func _house(origin: Vector3, tall: bool) -> void:
 	var d := 2.6 if tall else 2.2
 	# Footprint body
 	_box(Vector3(w, h, d), origin + Vector3(0, h * 0.5, 0), Color(0.68, 0.55, 0.40))
-	# Pitched roof (two slanted plates) — readable from strategy cam
+	# Pitched roof (two slanted plates) â€” readable from strategy cam
 	var roof_y := h + 0.15
 	var roof_col := Color(0.48, 0.24, 0.20) if tall else Color(0.52, 0.28, 0.22)
 	_box(Vector3(w + 0.4, 0.22, d * 0.55), origin + Vector3(0, roof_y, -d * 0.12), roof_col, false, Vector3(28, 0, 0))
@@ -178,3 +179,11 @@ func _bake_flat_navmesh() -> void:
 	nmesh.clear_polygons()
 	nmesh.add_polygon(PackedInt32Array([0, 1, 2, 3]))
 	nav_region.navigation_mesh = nmesh
+
+func get_inspect_data() -> Dictionary:
+	return {
+		"name": "Ashford",
+		"role": "Barony capital",
+		"kind": "holding",
+		"buildings": ["Keep", "Market", "Houses (10)", "Farms (3)"],
+	}

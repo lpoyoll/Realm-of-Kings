@@ -1,0 +1,572 @@
+extends CanvasLayer
+## CK3-like UI shell: top bar, outliner, side panel, bottom speed/alerts.
+## Mouse: panels STOP clicks; empty center IGNORE so the 3D map receives picks.
+## Selection bus: select_holding / select_character / select_army (map + outliner).
+
+signal raise_levy_pressed
+signal go_to_pressed(target: Node)
+
+enum SelKind { NONE, HOLDING, CHARACTER, ARMY }
+
+var camera_rig: Node3D
+var army: Node3D
+var muster: Node
+var settlement: Node3D
+
+var selected: Node = null
+var sel_kind: SelKind = SelKind.NONE
+var _last_army_count: int = -1
+var _last_people_count: int = -1
+
+var _root: Control
+var _outliner: PanelContainer
+var _side: PanelContainer
+var _holdings_box: VBoxContainer
+var _people_box: VBoxContainer
+var _armies_box: VBoxContainer
+var _side_title: Label
+var _side_body: Label
+var _side_extra: Label
+var _raise_btn: Button
+var _goto_btn: Button
+var _move_hint: Label
+var _date_label: Label
+var _gold_label: Label
+var _prestige_label: Label
+var _piety_label: Label
+var _dynasty_label: Label
+var _alert_label: Label
+var _counts_label: Label
+var _zoom_label: Label
+var _pause_btn: Button
+var _speed1_btn: Button
+var _speed2_btn: Button
+
+var _panel_style: StyleBoxFlat
+var _bar_style: StyleBoxFlat
+var _btn_style: StyleBoxFlat
+var _row_style: StyleBoxFlat
+var _row_selected_style: StyleBoxFlat
+
+var _holding_panel: VBoxContainer
+var _character_panel: VBoxContainer
+var _army_panel: VBoxContainer
+var _empty_panel: VBoxContainer
+var _char_body: Label
+var _army_body: Label
+
+func _ready() -> void:
+	_build_styles()
+	_build_ui()
+	_show_panel(SelKind.NONE)
+	set_status("Ready")
+
+func bind(camera: Node3D, army_node: Node3D, muster_node: Node, settlement_node: Node3D = null) -> void:
+	camera_rig = camera
+	army = army_node
+	muster = muster_node
+	settlement = settlement_node
+	_refresh_outliner()
+
+func set_status(text: String) -> void:
+	if _alert_label:
+		_alert_label.text = text
+
+func clear_selection() -> void:
+	selected = null
+	sel_kind = SelKind.NONE
+	_show_panel(SelKind.NONE)
+	_refresh_outliner()
+
+func select_holding(node: Node) -> void:
+	selected = node
+	sel_kind = SelKind.HOLDING
+	_populate_holding(node)
+	_show_panel(SelKind.HOLDING)
+	_refresh_outliner()
+
+func select_character(node: Node) -> void:
+	selected = node
+	sel_kind = SelKind.CHARACTER
+	_populate_character(node)
+	_show_panel(SelKind.CHARACTER)
+	_refresh_outliner()
+
+func select_army(node: Node) -> void:
+	selected = node
+	sel_kind = SelKind.ARMY
+	_populate_army(node)
+	_show_panel(SelKind.ARMY)
+	_refresh_outliner()
+
+func refresh_outliner() -> void:
+	_refresh_outliner()
+
+func _process(_delta: float) -> void:
+	_refresh_top()
+	_refresh_counts()
+	_maybe_dim_outliner()
+	var army_n := 0
+	if army and army.has_method("get_count"):
+		army_n = army.get_count()
+	var people_n := GameData.count_people() if is_instance_valid(GameData) else 0
+	if army_n != _last_army_count or people_n != _last_people_count:
+		_last_army_count = army_n
+		_last_people_count = people_n
+		_refresh_outliner()
+	if sel_kind == SelKind.ARMY:
+		_populate_army(army if army else selected)
+	elif sel_kind == SelKind.HOLDING:
+		_update_raise_enabled()
+
+func _build_styles() -> void:
+	_panel_style = StyleBoxFlat.new()
+	_panel_style.bg_color = Color(0.14, 0.12, 0.10, 0.94)
+	_panel_style.border_color = Color(0.42, 0.38, 0.32, 1.0)
+	_panel_style.set_border_width_all(2)
+	_panel_style.set_corner_radius_all(4)
+	_panel_style.content_margin_left = 10
+	_panel_style.content_margin_right = 10
+	_panel_style.content_margin_top = 8
+	_panel_style.content_margin_bottom = 8
+
+	_bar_style = StyleBoxFlat.new()
+	_bar_style.bg_color = Color(0.12, 0.11, 0.10, 0.96)
+	_bar_style.border_color = Color(0.35, 0.40, 0.45, 1.0)
+	_bar_style.set_border_width_all(1)
+	_bar_style.set_corner_radius_all(2)
+	_bar_style.content_margin_left = 12
+	_bar_style.content_margin_right = 12
+	_bar_style.content_margin_top = 6
+	_bar_style.content_margin_bottom = 6
+
+	_btn_style = StyleBoxFlat.new()
+	_btn_style.bg_color = Color(0.28, 0.24, 0.18, 1.0)
+	_btn_style.border_color = Color(0.55, 0.48, 0.32, 1.0)
+	_btn_style.set_border_width_all(1)
+	_btn_style.set_corner_radius_all(3)
+	_btn_style.content_margin_left = 10
+	_btn_style.content_margin_right = 10
+	_btn_style.content_margin_top = 4
+	_btn_style.content_margin_bottom = 4
+
+	_row_style = StyleBoxFlat.new()
+	_row_style.bg_color = Color(0.18, 0.16, 0.14, 0.0)
+	_row_style.set_content_margin_all(4)
+
+	_row_selected_style = StyleBoxFlat.new()
+	_row_selected_style.bg_color = Color(0.32, 0.28, 0.18, 0.85)
+	_row_selected_style.border_color = Color(0.70, 0.58, 0.28, 1.0)
+	_row_selected_style.set_border_width_all(1)
+	_row_selected_style.set_corner_radius_all(2)
+	_row_selected_style.set_content_margin_all(4)
+
+func _style_panel(p: PanelContainer, bar: bool = false) -> void:
+	p.add_theme_stylebox_override("panel", _bar_style if bar else _panel_style)
+	p.mouse_filter = Control.MOUSE_FILTER_STOP
+
+func _style_button(b: Button) -> void:
+	b.add_theme_stylebox_override("normal", _btn_style)
+	var hover := _btn_style.duplicate() as StyleBoxFlat
+	hover.bg_color = Color(0.38, 0.32, 0.22, 1.0)
+	b.add_theme_stylebox_override("hover", hover)
+	var pressed := _btn_style.duplicate() as StyleBoxFlat
+	pressed.bg_color = Color(0.22, 0.18, 0.12, 1.0)
+	b.add_theme_stylebox_override("pressed", pressed)
+	b.add_theme_color_override("font_color", Color(0.92, 0.88, 0.75))
+
+func _label(text: String, size: int = 14, color: Color = Color(0.90, 0.86, 0.78)) -> Label:
+	var l := Label.new()
+	l.text = text
+	l.add_theme_font_size_override("font_size", size)
+	l.add_theme_color_override("font_color", color)
+	return l
+
+func _section_header(text: String) -> Label:
+	return _label(text, 13, Color(0.72, 0.68, 0.55))
+
+func _build_ui() -> void:
+	_root = Control.new()
+	_root.name = "Root"
+	_root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_root)
+
+	_build_top_bar()
+	_build_outliner()
+	_build_side_panel()
+	_build_bottom_bar()
+
+func _build_top_bar() -> void:
+	var top := PanelContainer.new()
+	top.name = "TopBar"
+	_style_panel(top, true)
+	top.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	top.offset_left = 8
+	top.offset_top = 8
+	top.offset_right = -8
+	top.offset_bottom = 52
+	_root.add_child(top)
+
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 18)
+	top.add_child(row)
+
+	_date_label = _label("1066.9.15", 16, Color(0.95, 0.90, 0.70))
+	row.add_child(_date_label)
+
+	row.add_child(_sep())
+	_gold_label = _label("Gold: 0", 14, Color(0.95, 0.82, 0.35))
+	row.add_child(_gold_label)
+	_prestige_label = _label("Prestige: 0", 14, Color(0.75, 0.85, 0.95))
+	row.add_child(_prestige_label)
+	_piety_label = _label("Piety: 0", 14, Color(0.85, 0.75, 0.95))
+	row.add_child(_piety_label)
+
+	row.add_child(_sep())
+	_dynasty_label = _label("Dynasty", 15, Color(0.95, 0.85, 0.45))
+	row.add_child(_dynasty_label)
+
+	var spacer := Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(spacer)
+
+	_counts_label = _label("People: 0   Army: 0", 13, Color(0.75, 0.72, 0.65))
+	row.add_child(_counts_label)
+	_zoom_label = _label("Zoom: Strategy", 13, Color(0.65, 0.70, 0.75))
+	row.add_child(_zoom_label)
+
+func _sep() -> Label:
+	return _label("|", 14, Color(0.45, 0.42, 0.38))
+
+func _build_outliner() -> void:
+	_outliner = PanelContainer.new()
+	_outliner.name = "Outliner"
+	_style_panel(_outliner)
+	_outliner.set_anchors_preset(Control.PRESET_LEFT_WIDE)
+	_outliner.offset_left = 8
+	_outliner.offset_top = 60
+	_outliner.offset_right = 220
+	_outliner.offset_bottom = -56
+	_root.add_child(_outliner)
+
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 4)
+	margin.add_theme_constant_override("margin_right", 4)
+	margin.add_theme_constant_override("margin_top", 4)
+	margin.add_theme_constant_override("margin_bottom", 4)
+	_outliner.add_child(margin)
+
+	var scroll := ScrollContainer.new()
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	margin.add_child(scroll)
+
+	var vbox := VBoxContainer.new()
+	vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	vbox.add_theme_constant_override("separation", 6)
+	scroll.add_child(vbox)
+
+	vbox.add_child(_label("OUTLINER", 14, Color(0.85, 0.78, 0.55)))
+
+	vbox.add_child(_section_header("Holdings"))
+	_holdings_box = VBoxContainer.new()
+	_holdings_box.add_theme_constant_override("separation", 2)
+	vbox.add_child(_holdings_box)
+
+	vbox.add_child(_section_header("People"))
+	_people_box = VBoxContainer.new()
+	_people_box.add_theme_constant_override("separation", 2)
+	vbox.add_child(_people_box)
+
+	vbox.add_child(_section_header("Armies"))
+	_armies_box = VBoxContainer.new()
+	_armies_box.add_theme_constant_override("separation", 2)
+	vbox.add_child(_armies_box)
+
+func _build_side_panel() -> void:
+	_side = PanelContainer.new()
+	_side.name = "SidePanel"
+	_style_panel(_side)
+	_side.set_anchors_preset(Control.PRESET_RIGHT_WIDE)
+	_side.offset_left = -300
+	_side.offset_top = 60
+	_side.offset_right = -8
+	_side.offset_bottom = -56
+	_root.add_child(_side)
+
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 6)
+	margin.add_theme_constant_override("margin_right", 6)
+	margin.add_theme_constant_override("margin_top", 4)
+	margin.add_theme_constant_override("margin_bottom", 4)
+	_side.add_child(margin)
+
+	var stack := VBoxContainer.new()
+	stack.add_theme_constant_override("separation", 8)
+	margin.add_child(stack)
+
+	_side_title = _label("Selection", 16, Color(0.95, 0.90, 0.70))
+	stack.add_child(_side_title)
+
+	# Holding
+	_holding_panel = VBoxContainer.new()
+	_holding_panel.add_theme_constant_override("separation", 6)
+	stack.add_child(_holding_panel)
+	_holding_panel.add_child(_section_header("Holding"))
+	_side_body = _label("Ashford", 14)
+	_side_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_holding_panel.add_child(_side_body)
+	_side_extra = _label("Buildings:\n- Keep\n- Market\n- Houses\n- Farms", 13, Color(0.78, 0.74, 0.66))
+	_side_extra.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_holding_panel.add_child(_side_extra)
+	_raise_btn = Button.new()
+	_raise_btn.text = "Raise Levy"
+	_style_button(_raise_btn)
+	_raise_btn.pressed.connect(func() -> void: raise_levy_pressed.emit())
+	_holding_panel.add_child(_raise_btn)
+
+	# Character
+	_character_panel = VBoxContainer.new()
+	_character_panel.add_theme_constant_override("separation", 6)
+	stack.add_child(_character_panel)
+	_character_panel.add_child(_section_header("Character"))
+	_char_body = _label("", 14)
+	_char_body.name = "CharBody"
+	_char_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_character_panel.add_child(_char_body)
+	_goto_btn = Button.new()
+	_goto_btn.text = "Go to"
+	_style_button(_goto_btn)
+	_goto_btn.pressed.connect(_on_goto)
+	_character_panel.add_child(_goto_btn)
+
+	# Army
+	_army_panel = VBoxContainer.new()
+	_army_panel.add_theme_constant_override("separation", 6)
+	stack.add_child(_army_panel)
+	_army_panel.add_child(_section_header("Army"))
+	_army_body = _label("", 14)
+	_army_body.name = "ArmyBody"
+	_army_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_army_panel.add_child(_army_body)
+	_move_hint = _label("Right-click map to move", 13, Color(0.70, 0.85, 0.70))
+	_move_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_army_panel.add_child(_move_hint)
+
+	# Empty
+	_empty_panel = VBoxContainer.new()
+	stack.add_child(_empty_panel)
+	_empty_panel.add_child(_label("Click a holding, person, or army\non the map or outliner.", 13, Color(0.65, 0.62, 0.55)))
+
+func _build_bottom_bar() -> void:
+	var bottom := PanelContainer.new()
+	bottom.name = "BottomBar"
+	_style_panel(bottom, true)
+	bottom.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	bottom.offset_left = 8
+	bottom.offset_top = -48
+	bottom.offset_right = -8
+	bottom.offset_bottom = -8
+	_root.add_child(bottom)
+
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	bottom.add_child(row)
+
+	_pause_btn = Button.new()
+	_pause_btn.text = "Pause"
+	_style_button(_pause_btn)
+	_pause_btn.pressed.connect(_on_pause)
+	row.add_child(_pause_btn)
+
+	_speed1_btn = Button.new()
+	_speed1_btn.text = "1x"
+	_style_button(_speed1_btn)
+	_speed1_btn.pressed.connect(func() -> void: Engine.time_scale = 1.0)
+	row.add_child(_speed1_btn)
+
+	_speed2_btn = Button.new()
+	_speed2_btn.text = "2x"
+	_style_button(_speed2_btn)
+	_speed2_btn.pressed.connect(func() -> void: Engine.time_scale = 2.0)
+	row.add_child(_speed2_btn)
+
+	row.add_child(_sep())
+
+	_alert_label = _label("Ready", 13, Color(0.85, 0.80, 0.60))
+	_alert_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(_alert_label)
+
+func _show_panel(kind: SelKind) -> void:
+	_holding_panel.visible = kind == SelKind.HOLDING
+	_character_panel.visible = kind == SelKind.CHARACTER
+	_army_panel.visible = kind == SelKind.ARMY
+	_empty_panel.visible = kind == SelKind.NONE
+	match kind:
+		SelKind.HOLDING:
+			_side_title.text = "Holding"
+		SelKind.CHARACTER:
+			_side_title.text = "Character"
+		SelKind.ARMY:
+			_side_title.text = "Army"
+		_:
+			_side_title.text = "Selection"
+
+func _populate_holding(node: Node) -> void:
+	var data: Dictionary = {}
+	if node and node.has_method("get_inspect_data"):
+		data = node.get_inspect_data()
+	var holding_name := str(data.get("name", "Ashford"))
+	_side_body.text = holding_name
+	var buildings: Array = data.get("buildings", ["Keep", "Market", "Houses", "Farms"])
+	var lines: PackedStringArray = PackedStringArray(["Buildings:"])
+	for b in buildings:
+		lines.append("- %s" % str(b))
+	_side_extra.text = "\n".join(lines)
+	_update_raise_enabled()
+
+func _update_raise_enabled() -> void:
+	if _raise_btn == null:
+		return
+	var can := false
+	if muster and muster.has_method("can_muster"):
+		can = muster.can_muster()
+	_raise_btn.disabled = not can
+	if can:
+		_raise_btn.text = "Raise Levy"
+	else:
+		_raise_btn.text = "Raise Levy (unavailable)"
+
+func _populate_character(node: Node) -> void:
+	var data: Dictionary = {}
+	if node and node.has_method("get_inspect_data"):
+		data = node.get_inspect_data()
+	if _char_body:
+		var lines: PackedStringArray = []
+		lines.append(str(data.get("name", "Unknown")))
+		lines.append("Role: %s" % str(data.get("role", "-")))
+		if data.has("opinion"):
+			lines.append("Opinion: %s" % str(data.get("opinion")))
+		_char_body.text = "\n".join(lines)
+
+func _populate_army(node: Node) -> void:
+	var count := 0
+	var army_node: Node = army if army else node
+	if army_node and army_node.has_method("get_count"):
+		count = army_node.get_count()
+	elif army_node and army_node.has_method("get_inspect_data"):
+		var d: Dictionary = army_node.get_inspect_data()
+		count = int(d.get("count", 0))
+	if _army_body:
+		_army_body.text = "Ashford Levy\nSoldiers: %d\nCommander: Captain Rhea (stub)" % count
+	if _move_hint:
+		_move_hint.text = "Right-click map to move"
+
+func _on_goto() -> void:
+	if selected:
+		go_to_pressed.emit(selected)
+
+func _on_pause() -> void:
+	if Engine.time_scale > 0.0:
+		Engine.time_scale = 0.0
+		_pause_btn.text = "Resume"
+	else:
+		Engine.time_scale = 1.0
+		_pause_btn.text = "Pause"
+
+func _refresh_top() -> void:
+	if not is_instance_valid(GameData):
+		return
+	if _date_label:
+		_date_label.text = GameData.date_string
+	if _gold_label:
+		_gold_label.text = "Gold: %d" % GameData.gold
+	if _prestige_label:
+		_prestige_label.text = "Prestige: %d" % GameData.prestige
+	if _piety_label:
+		_piety_label.text = "Piety: %d" % GameData.piety
+	if _dynasty_label:
+		_dynasty_label.text = "House %s" % GameData.dynasty_chip()
+
+func _refresh_counts() -> void:
+	if _counts_label and is_instance_valid(GameData):
+		_counts_label.text = "People: %d   Army: %d" % [GameData.count_people(), GameData.count_army()]
+	if _zoom_label and camera_rig and camera_rig.has_method("get_zoom_label"):
+		_zoom_label.text = "Zoom: %s" % camera_rig.get_zoom_label()
+
+func _maybe_dim_outliner() -> void:
+	if _outliner == null or camera_rig == null:
+		return
+	var street := false
+	if camera_rig.has_method("get_zoom_label"):
+		street = camera_rig.get_zoom_label() == "Street"
+	_outliner.modulate = Color(1, 1, 1, 0.45) if street else Color(1, 1, 1, 1)
+
+func _clear_box(box: VBoxContainer) -> void:
+	for c in box.get_children():
+		c.queue_free()
+
+func _make_row(text: String, selected_row: bool, on_press: Callable) -> Button:
+	var b := Button.new()
+	b.text = text
+	b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	b.flat = true
+	b.add_theme_color_override("font_color", Color(0.90, 0.86, 0.78))
+	b.add_theme_color_override("font_hover_color", Color(1.0, 0.95, 0.70))
+	if selected_row:
+		b.add_theme_stylebox_override("normal", _row_selected_style)
+		b.add_theme_stylebox_override("hover", _row_selected_style)
+	else:
+		b.add_theme_stylebox_override("normal", _row_style)
+	b.pressed.connect(on_press)
+	return b
+
+func _refresh_outliner() -> void:
+	if _holdings_box == null:
+		return
+	_clear_box(_holdings_box)
+	_clear_box(_people_box)
+	_clear_box(_armies_box)
+
+	# Holdings
+	var hold_name := "Ashford"
+	if settlement and settlement.has_method("get_inspect_data"):
+		hold_name = str(settlement.get_inspect_data().get("name", "Ashford"))
+	var hold_sel := sel_kind == SelKind.HOLDING
+	_holdings_box.add_child(_make_row(hold_name, hold_sel, func() -> void:
+		if settlement:
+			select_holding(settlement)
+	))
+
+	# People: ruler + named NPCs
+	var people: Array = []
+	people.append_array(get_tree().get_nodes_in_group("ruler"))
+	people.append_array(get_tree().get_nodes_in_group("npcs"))
+	for p in people:
+		if p == null or not is_instance_valid(p):
+			continue
+		var pname := str(p.name)
+		if "display_name" in p:
+			pname = str(p.display_name)
+		elif p.has_method("get_inspect_data"):
+			pname = str(p.get_inspect_data().get("name", p.name))
+		var is_sel := sel_kind == SelKind.CHARACTER and selected == p
+		var captured: Node = p
+		_people_box.add_child(_make_row(pname, is_sel, func() -> void:
+			select_character(captured)
+		))
+
+	# Armies if count > 0
+	var army_count := 0
+	if army and army.has_method("get_count"):
+		army_count = army.get_count()
+	if army_count > 0:
+		var is_sel := sel_kind == SelKind.ARMY
+		_armies_box.add_child(_make_row("Ashford Levy (%d)" % army_count, is_sel, func() -> void:
+			if army:
+				select_army(army)
+		))
+	else:
+		_armies_box.add_child(_label("(none mustered)", 12, Color(0.55, 0.52, 0.48)))

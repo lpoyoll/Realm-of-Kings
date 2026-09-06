@@ -1,13 +1,12 @@
 extends Node3D
-## V0.1 entry: Ashford settlement, ruler, NPCs, villagers, strategy camera, HUD, muster, army.
+## V0.1 entry: Ashford settlement, ruler, NPCs, villagers, strategy camera, CK3 UI shell, muster, army.
 
 const SETTLEMENT_SCENE := preload("res://scenes/world/settlement_ashford.tscn")
 const RULER_SCENE := preload("res://scenes/entities/ruler.tscn")
 const NPC_SCENE := preload("res://scenes/entities/npc.tscn")
 const VILLAGER_SCENE := preload("res://scenes/entities/villager.tscn")
 const ARMY_SCENE := preload("res://scenes/entities/army.tscn")
-const HUD_SCENE := preload("res://ui/hud.tscn")
-const INSPECTOR_SCENE := preload("res://ui/inspector.tscn")
+const SHELL_SCENE := preload("res://ui/ck3_shell.tscn")
 
 var settlement: Node3D
 var ruler: CharacterBody3D
@@ -15,7 +14,6 @@ var army: Node3D
 var muster: Node
 var camera_rig: Node3D
 var hud: CanvasLayer
-var inspector: PanelContainer
 var selected: Node = null
 
 func _ready() -> void:
@@ -55,7 +53,7 @@ func _spawn_npcs() -> void:
 		npc.global_position = d.pos
 
 func _spawn_villagers() -> void:
-	# ~16 villagers so a levy of 4–8 leaves civilians remaining
+	# ~16 villagers so a levy of 4â€“8 leaves civilians remaining
 	var names := [
 		"Bram", "Elsa", "Tomlin", "Nessa", "Hud", "Petra", "Owen", "Kira",
 		"Joss", "Willa", "Edda", "Rolf", "Mara", "Seth", "Lina", "Garr"
@@ -94,7 +92,9 @@ func _spawn_army_and_muster() -> void:
 	muster.setup(army, marker, spawns)
 	muster.muster_finished.connect(func(c: int) -> void:
 		if hud:
-			hud.set_status("Levy mustered: %d soldiers (converted from villagers)" % c)
+			hud.set_status("Levy mustering (%d)" % c)
+			if hud.has_method("refresh_outliner"):
+				hud.refresh_outliner()
 	)
 
 func _setup_camera() -> void:
@@ -110,18 +110,26 @@ func _setup_camera() -> void:
 	add_child(camera_rig)
 
 func _setup_ui() -> void:
-	hud = HUD_SCENE.instantiate()
+	hud = SHELL_SCENE.instantiate()
 	add_child(hud)
-	hud.bind(camera_rig, army, muster)
-	hud.muster_pressed.connect(_do_muster)
-	inspector = INSPECTOR_SCENE.instantiate()
-	hud.add_child(inspector)
+	hud.bind(camera_rig, army, muster, settlement)
+	hud.raise_levy_pressed.connect(_do_muster)
+	hud.go_to_pressed.connect(_on_go_to)
 
 func _do_muster() -> void:
 	if muster and muster.has_method("raise_levy"):
 		if muster.can_muster():
+			var before := get_tree().get_nodes_in_group("villagers").size()
 			muster.raise_levy()
-			hud.set_status("Raising levy — villagers converting to soldiers")
+			var after := get_tree().get_nodes_in_group("villagers").size()
+			var n := maxi(before - after, 0)
+			if hud:
+				hud.set_status("Levy mustering (%d)" % n)
+				if hud.has_method("refresh_outliner"):
+					hud.refresh_outliner()
+				# Keep holding panel open with updated Raise button state
+				if settlement and hud.has_method("select_holding"):
+					hud.select_holding(settlement)
 		else:
 			var villagers_left := get_tree().get_nodes_in_group("villagers").size()
 			if villagers_left == 0:
@@ -129,11 +137,34 @@ func _do_muster() -> void:
 			else:
 				hud.set_status("Levy already at capacity")
 
+func _on_go_to(target: Node) -> void:
+	if target == null or not is_instance_valid(target):
+		return
+	if camera_rig == null:
+		return
+	# Street zoom + follow the character when possible
+	if "follow" in camera_rig and target is Node3D:
+		camera_rig.follow = target
+	if "_distance" in camera_rig and "min_height" in camera_rig:
+		camera_rig._distance = camera_rig.min_height + 1.0
+	if hud:
+		hud.set_status("Following %s" % _display_name_of(target))
+
+func _display_name_of(node: Node) -> String:
+	if node == null:
+		return "?"
+	if "display_name" in node:
+		return str(node.display_name)
+	if node.has_method("get_inspect_data"):
+		return str(node.get_inspect_data().get("name", node.name))
+	return str(node.name)
+
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):
 		get_tree().quit()
 		return
 	if event.is_action_pressed("muster"):
+		# Optional shortcut â€” canonical path is holding panel Raise Levy
 		_do_muster()
 		return
 	if event.is_action_pressed("pause"):
@@ -151,37 +182,68 @@ func _unhandled_input(event: InputEvent) -> void:
 func _try_select() -> void:
 	var hit := _raycast()
 	if hit.is_empty():
+		_clear_selection()
 		return
 	var collider: Object = hit.get("collider")
 	var node: Node = collider as Node
 	while node:
-		if node.is_in_group("npcs") or node.is_in_group("ruler") or node.is_in_group("soldiers") or node.is_in_group("villagers") or node == army:
-			_select(node)
+		# Soldier â†’ select owning army
+		if node.is_in_group("soldiers"):
+			_select_army()
+			return
+		if node == army or (army and node.get_parent() == army):
+			_select_army()
+			return
+		if node.is_in_group("holdings") or node == settlement:
+			_select_holding()
+			return
+		if node.is_in_group("npcs") or node.is_in_group("ruler") or node.is_in_group("villagers"):
+			_select_character(node)
 			return
 		if node.has_method("get_inspect_data"):
-			_select(node)
+			var data: Dictionary = node.get_inspect_data()
+			var kind := str(data.get("kind", ""))
+			if kind == "holding":
+				_select_holding()
+				return
+			if kind == "army":
+				_select_army()
+				return
+			_select_character(node)
 			return
 		node = node.get_parent()
-	selected = null
-	if inspector:
-		inspector.clear()
-	if hud:
-		hud.set_selected("Selected: -")
+	_clear_selection()
 
-func _select(node: Node) -> void:
+func _clear_selection() -> void:
+	selected = null
+	if hud and hud.has_method("clear_selection"):
+		hud.clear_selection()
+
+func _select_holding() -> void:
+	selected = settlement
+	if hud and hud.has_method("select_holding"):
+		hud.select_holding(settlement)
+
+func _select_character(node: Node) -> void:
 	selected = node
-	var data: Dictionary = {}
-	if node.has_method("get_inspect_data"):
-		data = node.get_inspect_data()
-	elif node == army and army.has_method("get_inspect_data"):
-		data = army.get_inspect_data()
-	if inspector:
-		inspector.show_entity(data)
-	if hud:
-		hud.set_selected("Selected: %s" % str(data.get("name", node.name)))
+	if hud and hud.has_method("select_character"):
+		hud.select_character(node)
+
+func _select_army() -> void:
+	selected = army
+	if hud and hud.has_method("select_army"):
+		hud.select_army(army)
 
 func _try_army_move() -> void:
-	if army == null:
+	# Only when army is the current selection (CK3-like order flow)
+	var army_selected := false
+	if hud and "sel_kind" in hud:
+		army_selected = hud.sel_kind == hud.SelKind.ARMY
+	elif selected == army:
+		army_selected = true
+	if not army_selected or army == null:
+		return
+	if army.has_method("get_count") and army.get_count() <= 0:
 		return
 	var hit := _raycast()
 	var pos: Vector3
