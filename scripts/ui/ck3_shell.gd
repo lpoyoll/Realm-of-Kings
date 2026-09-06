@@ -534,7 +534,7 @@ func _refresh_outliner() -> void:
 	var hold_name := "Ashford"
 	if settlement and settlement.has_method("get_inspect_data"):
 		hold_name = str(settlement.get_inspect_data().get("name", "Ashford"))
-	var hold_sel := sel_kind == SelKind.HOLDING
+	var hold_sel: bool = sel_kind == SelKind.HOLDING
 	_holdings_box.add_child(_make_row(hold_name, hold_sel, func() -> void:
 		if settlement:
 			select_holding(settlement)
@@ -552,7 +552,7 @@ func _refresh_outliner() -> void:
 			pname = str(p.display_name)
 		elif p.has_method("get_inspect_data"):
 			pname = str(p.get_inspect_data().get("name", p.name))
-		var is_sel := sel_kind == SelKind.CHARACTER and selected == p
+		var is_sel: bool = sel_kind == SelKind.CHARACTER and selected == p
 		var captured: Node = p
 		_people_box.add_child(_make_row(pname, is_sel, func() -> void:
 			select_character(captured)
@@ -563,7 +563,7 @@ func _refresh_outliner() -> void:
 	if army and army.has_method("get_count"):
 		army_count = army.get_count()
 	if army_count > 0:
-		var is_sel := sel_kind == SelKind.ARMY
+		var is_sel: bool = sel_kind == SelKind.ARMY
 		_armies_box.add_child(_make_row("Ashford Levy (%d)" % army_count, is_sel, func() -> void:
 			if army:
 				select_army(army)
