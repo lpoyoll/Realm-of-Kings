@@ -85,6 +85,13 @@ var _court_house: Label
 var _court_rows: VBoxContainer
 var _court_positions: VBoxContainer
 
+var _intrigue_modal: PanelContainer
+var _intrigue_spymaster: Label
+var _intrigue_schemes: VBoxContainer
+var _intrigue_sway_option: OptionButton
+var _intrigue_hooks_box: VBoxContainer
+var _sway_target_nodes: Array = []
+
 func _ready() -> void:
 	_theme = Ck3Theme.get_theme()
 	_build_ui()
@@ -186,6 +193,7 @@ func _build_ui() -> void:
 	_build_military_window()
 	_build_decisions_window()
 	_build_court_window()
+	_build_intrigue_window()
 
 func _build_top_bar() -> void:
 	var top := PanelContainer.new()
@@ -240,7 +248,7 @@ func _build_top_bar() -> void:
 		{"abbr": "Mil", "title": "Military", "live": true},
 		{"abbr": "Cou", "title": "Council", "live": true},
 		{"abbr": "Crt", "title": "Court", "live": true},
-		{"abbr": "Int", "title": "Intrigue", "live": false},
+		{"abbr": "Int", "title": "Intrigue", "live": true},
 		{"abbr": "Dec", "title": "Decisions", "live": true},
 	]
 	for item in stub_items:
@@ -485,6 +493,9 @@ func _open_stub_window(title_text: String) -> void:
 	if title_text == "Court":
 		_open_court_window()
 		return
+	if title_text == "Intrigue":
+		_open_intrigue_window()
+		return
 	if _stub_modal == null:
 		return
 	if _council_modal:
@@ -495,6 +506,8 @@ func _open_stub_window(title_text: String) -> void:
 		_decisions_modal.visible = false
 	if _court_modal:
 		_court_modal.visible = false
+	if _intrigue_modal:
+		_intrigue_modal.visible = false
 	_stub_modal_title.text = title_text
 	_stub_modal_body.text = "Coming — %s window stub (Horizon B)." % title_text
 	_stub_modal.visible = true
@@ -571,6 +584,8 @@ func _open_council_window() -> void:
 	if _court_modal:
 		_court_modal.visible = false
 	_refresh_council_rows()
+	if _intrigue_modal:
+		_intrigue_modal.visible = false
 	_council_modal.visible = true
 	set_status("Council")
 
@@ -736,6 +751,8 @@ func _open_military_window() -> void:
 	if _court_modal:
 		_court_modal.visible = false
 	_refresh_military_levy()
+	if _intrigue_modal:
+		_intrigue_modal.visible = false
 	_military_modal.visible = true
 	set_status("Military")
 
@@ -827,6 +844,8 @@ func _open_decisions_window() -> void:
 	if _court_modal:
 		_court_modal.visible = false
 	_decisions_modal.visible = true
+	if _intrigue_modal:
+		_intrigue_modal.visible = false
 	set_status("Decisions")
 
 func _close_decisions_window() -> void:
@@ -934,6 +953,8 @@ func _open_court_window() -> void:
 	if _decisions_modal:
 		_decisions_modal.visible = false
 	_refresh_court_rows()
+	if _intrigue_modal:
+		_intrigue_modal.visible = false
 	_court_modal.visible = true
 	set_status("Court")
 
@@ -1015,6 +1036,221 @@ func _refresh_court_rows() -> void:
 		listed += 1
 	if listed == 0:
 		_court_rows.add_child(_label("(no courtiers)", "MuteLabel"))
+
+
+func _build_intrigue_window() -> void:
+	_intrigue_modal = PanelContainer.new()
+	_intrigue_modal.name = "IntrigueModal"
+	_intrigue_modal.mouse_filter = Control.MOUSE_FILTER_STOP
+	_intrigue_modal.visible = false
+	_intrigue_modal.set_anchors_preset(Control.PRESET_CENTER)
+	_intrigue_modal.offset_left = -300.0
+	_intrigue_modal.offset_top = -260.0
+	_intrigue_modal.offset_right = 300.0
+	_intrigue_modal.offset_bottom = 260.0
+	_root.add_child(_intrigue_modal)
+
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 8)
+	_intrigue_modal.add_child(v)
+
+	var header := HBoxContainer.new()
+	header.add_theme_constant_override("separation", 12)
+	v.add_child(header)
+	header.add_child(_label("Intrigue", "TitleLabel"))
+	var spacer := Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	header.add_child(spacer)
+	var close_btn := Button.new()
+	close_btn.text = "Close"
+	close_btn.theme_type_variation = "GhostButton"
+	close_btn.pressed.connect(_close_intrigue_window)
+	header.add_child(close_btn)
+
+	_intrigue_spymaster = _label("Spymaster: —", "MuteLabel")
+	_intrigue_spymaster.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	v.add_child(_intrigue_spymaster)
+
+	v.add_child(_section_header("Schemes"))
+	_intrigue_schemes = VBoxContainer.new()
+	_intrigue_schemes.name = "IntrigueSchemes"
+	_intrigue_schemes.add_theme_constant_override("separation", 8)
+	v.add_child(_intrigue_schemes)
+
+	# Sway — available stub
+	var sway_box := VBoxContainer.new()
+	sway_box.add_theme_constant_override("separation", 4)
+	_intrigue_schemes.add_child(sway_box)
+	sway_box.add_child(_label("Sway", "BodyLabel"))
+	var sway_hint := _label("Improve a target's opinion of you (toast stub).", "MuteLabel")
+	sway_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	sway_box.add_child(sway_hint)
+	var sway_row := HBoxContainer.new()
+	sway_row.add_theme_constant_override("separation", 8)
+	sway_box.add_child(sway_row)
+	var target_lbl := _label("Target", "MuteLabel")
+	target_lbl.custom_minimum_size = Vector2(50, 0)
+	sway_row.add_child(target_lbl)
+	_intrigue_sway_option = OptionButton.new()
+	_intrigue_sway_option.name = "SwayTarget"
+	_intrigue_sway_option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_intrigue_sway_option.custom_minimum_size = Vector2(160, 28)
+	sway_row.add_child(_intrigue_sway_option)
+	var view_btn := Button.new()
+	view_btn.text = "View"
+	view_btn.tooltip_text = "Open target dossier"
+	view_btn.theme_type_variation = "GhostButton"
+	view_btn.custom_minimum_size = Vector2(56, 28)
+	view_btn.pressed.connect(_on_sway_view_target)
+	sway_row.add_child(view_btn)
+	var start_btn := Button.new()
+	start_btn.text = "Start"
+	start_btn.tooltip_text = "Begin Sway scheme (stub)"
+	start_btn.theme_type_variation = "PrimaryButton"
+	start_btn.custom_minimum_size = Vector2(72, 28)
+	start_btn.pressed.connect(_on_sway_start)
+	sway_row.add_child(start_btn)
+
+	# Fabricate Hook — Coming
+	var fab := Button.new()
+	fab.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	fab.text = "Fabricate Hook — Coming"
+	fab.tooltip_text = "Coming"
+	fab.disabled = true
+	fab.theme_type_variation = "ComingButton"
+	fab.custom_minimum_size = Vector2(0, 30)
+	_intrigue_schemes.add_child(fab)
+
+	# Murder — Coming
+	var mur := Button.new()
+	mur.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	mur.text = "Murder — Coming"
+	mur.tooltip_text = "Coming"
+	mur.disabled = true
+	mur.theme_type_variation = "ComingButton"
+	mur.custom_minimum_size = Vector2(0, 30)
+	_intrigue_schemes.add_child(mur)
+
+	v.add_child(_section_header("Hooks / Secrets"))
+	_intrigue_hooks_box = VBoxContainer.new()
+	_intrigue_hooks_box.name = "IntrigueHooks"
+	_intrigue_hooks_box.add_theme_constant_override("separation", 2)
+	v.add_child(_intrigue_hooks_box)
+	_intrigue_hooks_box.add_child(_label("None", "MuteLabel"))
+
+	v.add_child(_label("Panel stub — no new map bodies. View opens the target dossier.", "MuteLabel"))
+
+func _open_intrigue_window() -> void:
+	if _intrigue_modal == null:
+		_build_intrigue_window()
+	if _stub_modal:
+		_stub_modal.visible = false
+	if _council_modal:
+		_council_modal.visible = false
+	if _military_modal:
+		_military_modal.visible = false
+	if _decisions_modal:
+		_decisions_modal.visible = false
+	if _court_modal:
+		_court_modal.visible = false
+	_refresh_intrigue_targets()
+	_intrigue_modal.visible = true
+	set_status("Intrigue")
+
+func _close_intrigue_window() -> void:
+	if _intrigue_modal:
+		_intrigue_modal.visible = false
+
+func _refresh_intrigue_targets() -> void:
+	_sway_target_nodes.clear()
+	if _intrigue_sway_option:
+		_intrigue_sway_option.clear()
+
+	var spy_name: String = "—"
+	var spy_job: Dictionary = {}
+	for job in _CouncilDataScript.job_defs():
+		if str(job.get("id", "")) == "spymaster":
+			spy_job = job
+			break
+	if not spy_job.is_empty():
+		var spy: Node = _CouncilDataScript.resolve_appointee(get_tree(), spy_job)
+		if spy != null and is_instance_valid(spy):
+			spy_name = _CouncilDataScript.person_display_name(spy)
+			if spy_name.is_empty():
+				spy_name = str(spy.name)
+	if _intrigue_spymaster:
+		_intrigue_spymaster.text = "Spymaster: %s" % spy_name
+
+	if _intrigue_sway_option == null:
+		return
+	var people: Array = []
+	people.append_array(get_tree().get_nodes_in_group("ruler"))
+	people.append_array(get_tree().get_nodes_in_group("npcs"))
+	var added: int = 0
+	for p in people:
+		if p == null or not is_instance_valid(p):
+			continue
+		# Prefer swaying others — skip player ruler if present
+		var is_ruler: bool = p.is_in_group("ruler")
+		if is_ruler:
+			continue
+		var pname: String = _CouncilDataScript.person_display_name(p)
+		if pname.is_empty():
+			pname = str(p.name)
+		var role_line: String = _role_of(p)
+		var item_text: String = pname if role_line.is_empty() else "%s (%s)" % [pname, role_line]
+		_intrigue_sway_option.add_item(item_text)
+		_sway_target_nodes.append(p)
+		added += 1
+	if added == 0:
+		_intrigue_sway_option.add_item("(no targets)")
+		_intrigue_sway_option.disabled = true
+	else:
+		_intrigue_sway_option.disabled = false
+		_intrigue_sway_option.select(0)
+
+func _sway_selected_target() -> Node:
+	if _intrigue_sway_option == null:
+		return null
+	var idx: int = int(_intrigue_sway_option.selected)
+	if idx < 0 or idx >= _sway_target_nodes.size():
+		return null
+	var n: Node = _sway_target_nodes[idx]
+	if n == null or not is_instance_valid(n):
+		return null
+	return n
+
+func _on_sway_view_target() -> void:
+	var target: Node = _sway_selected_target()
+	if target == null:
+		set_status("Sway — no target to view.")
+		return
+	var pname: String = _CouncilDataScript.person_display_name(target)
+	if pname.is_empty():
+		pname = str(target.name)
+	select_character(target)
+	set_status("Intrigue -> %s" % pname)
+
+func _on_sway_start() -> void:
+	var target: Node = _sway_selected_target()
+	if target == null:
+		set_status("Sway — pick a target first.")
+		return
+	var pname: String = _CouncilDataScript.person_display_name(target)
+	if pname.is_empty():
+		pname = str(target.name)
+	var bumped: bool = false
+	if "opinion" in target:
+		var cur: int = int(target.opinion)
+		target.opinion = clampi(cur + 5, 0, 100)
+		bumped = true
+	if sel_kind == SelKind.CHARACTER and selected != null and is_instance_valid(selected) and selected == target:
+		_populate_character(selected)
+	if bumped:
+		set_status("Sway started on %s — opinion +5." % pname)
+	else:
+		set_status("Sway started on %s." % pname)
 
 func _build_bottom_bar() -> void:
 	var bottom := PanelContainer.new()
