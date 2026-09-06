@@ -74,6 +74,10 @@ var _council_modal: PanelContainer
 var _council_liege: Label
 var _council_rows: VBoxContainer
 
+var _military_modal: PanelContainer
+var _military_levy_label: Label
+var _military_marshal_label: Label
+
 func _ready() -> void:
 	_build_styles()
 	_build_ui()
@@ -138,6 +142,8 @@ func _process(_delta: float) -> void:
 		_refresh_outliner()
 		if sel_kind == SelKind.NONE:
 			_populate_realm()
+	if _military_modal and _military_modal.visible:
+		_refresh_military_levy()
 	if sel_kind == SelKind.ARMY:
 		_populate_army(army if army else selected)
 	elif sel_kind == SelKind.HOLDING:
@@ -233,6 +239,7 @@ func _build_ui() -> void:
 	_build_bottom_bar()
 	_build_stub_modal()
 	_build_council_window()
+	_build_military_window()
 
 func _build_top_bar() -> void:
 	var top := PanelContainer.new()
@@ -293,10 +300,14 @@ func _build_top_bar() -> void:
 	for n in stub_names:
 		var b := Button.new()
 		b.text = str(n)
-		b.tooltip_text = "%s — Coming" % str(n)
+		var title_name: String = str(n)
+		var is_live: bool = title_name == "Council" or title_name == "Military"
+		if is_live:
+			b.tooltip_text = title_name
+		else:
+			b.tooltip_text = "%s — Coming" % title_name
 		_style_button(b)
 		b.custom_minimum_size = Vector2(78, 0)
-		var title_name: String = str(n)
 		b.pressed.connect(func() -> void: _open_stub_window(title_name))
 		icons.add_child(b)
 
@@ -488,10 +499,15 @@ func _open_stub_window(title_text: String) -> void:
 	if title_text == "Council":
 		_open_council_window()
 		return
+	if title_text == "Military":
+		_open_military_window()
+		return
 	if _stub_modal == null:
 		return
 	if _council_modal:
 		_council_modal.visible = false
+	if _military_modal:
+		_military_modal.visible = false
 	_stub_modal_title.text = title_text
 	_stub_modal_body.text = "Coming — %s window stub (Horizon B)." % title_text
 	_stub_modal.visible = true
@@ -562,6 +578,8 @@ func _open_council_window() -> void:
 		_build_council_window()
 	if _stub_modal:
 		_stub_modal.visible = false
+	if _military_modal:
+		_military_modal.visible = false
 	_refresh_council_rows()
 	_council_modal.visible = true
 	set_status("Council")
@@ -611,6 +629,118 @@ func _refresh_council_rows() -> void:
 		else:
 			row.disabled = true
 		_council_rows.add_child(row)
+
+
+func _build_military_window() -> void:
+	_military_modal = PanelContainer.new()
+	_military_modal.name = "MilitaryModal"
+	_military_modal.add_theme_stylebox_override("panel", _modal_style)
+	_military_modal.mouse_filter = Control.MOUSE_FILTER_STOP
+	_military_modal.visible = false
+	_military_modal.set_anchors_preset(Control.PRESET_CENTER)
+	_military_modal.offset_left = -280
+	_military_modal.offset_top = -240
+	_military_modal.offset_right = 280
+	_military_modal.offset_bottom = 240
+	_root.add_child(_military_modal)
+
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 8)
+	_military_modal.add_child(v)
+
+	var header := HBoxContainer.new()
+	header.add_theme_constant_override("separation", 12)
+	v.add_child(header)
+	header.add_child(_label("Military", 18, Color(0.95, 0.90, 0.70)))
+	var spacer := Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	header.add_child(spacer)
+	var close_btn := Button.new()
+	close_btn.text = "Close"
+	_style_button(close_btn)
+	close_btn.pressed.connect(_close_military_window)
+	header.add_child(close_btn)
+
+	_military_marshal_label = _label("Marshal: Captain Rhea (stub)", 13, Color(0.75, 0.80, 0.70))
+	v.add_child(_military_marshal_label)
+
+	v.add_child(_section_header("Levies"))
+	_military_levy_label = _label("Raised: 0", 14, Color(0.90, 0.86, 0.78))
+	v.add_child(_military_levy_label)
+	var levy_hint := _label(
+		"Raise Levy from the Holding panel. When the army is selected, RMB the map to move.",
+		11,
+		Color(0.55, 0.52, 0.48)
+	)
+	levy_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	v.add_child(levy_hint)
+
+	v.add_child(_section_header("Men-at-Arms (stub)"))
+	var maa_hdr := HBoxContainer.new()
+	maa_hdr.add_theme_constant_override("separation", 8)
+	v.add_child(maa_hdr)
+	var type_h := _label("Regiment", 12, Color(0.72, 0.68, 0.55))
+	type_h.custom_minimum_size = Vector2(140, 0)
+	maa_hdr.add_child(type_h)
+	var size_h := _label("Size", 12, Color(0.72, 0.68, 0.55))
+	size_h.custom_minimum_size = Vector2(60, 0)
+	maa_hdr.add_child(size_h)
+	var act_h := _label("Recruit", 12, Color(0.72, 0.68, 0.55))
+	act_h.custom_minimum_size = Vector2(100, 0)
+	maa_hdr.add_child(act_h)
+
+	var maa_types: PackedStringArray = PackedStringArray(["Bowmen", "Spearmen", "Light Horse"])
+	for maa_name in maa_types:
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 8)
+		v.add_child(row)
+		var name_l := _label(str(maa_name), 13, Color(0.90, 0.86, 0.78))
+		name_l.custom_minimum_size = Vector2(140, 0)
+		row.add_child(name_l)
+		var size_l := _label("0", 13, Color(0.78, 0.74, 0.66))
+		size_l.custom_minimum_size = Vector2(60, 0)
+		row.add_child(size_l)
+		var recruit := Button.new()
+		recruit.text = "Coming"
+		recruit.disabled = true
+		recruit.tooltip_text = "Coming"
+		_style_button(recruit)
+		recruit.custom_minimum_size = Vector2(100, 0)
+		row.add_child(recruit)
+
+	var maa_note := _label(
+		"MaA sizes stay at 0 until recruited onto the map. Levies are the only raised troops.",
+		11,
+		Color(0.55, 0.52, 0.48)
+	)
+	maa_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	v.add_child(maa_note)
+
+func _open_military_window() -> void:
+	if _military_modal == null:
+		_build_military_window()
+	if _stub_modal:
+		_stub_modal.visible = false
+	if _council_modal:
+		_council_modal.visible = false
+	_refresh_military_levy()
+	_military_modal.visible = true
+	set_status("Military")
+
+func _close_military_window() -> void:
+	if _military_modal:
+		_military_modal.visible = false
+
+func _refresh_military_levy() -> void:
+	if _military_levy_label == null:
+		return
+	var count: int = 0
+	if army and army.has_method("get_count"):
+		count = int(army.get_count())
+	else:
+		count = get_tree().get_nodes_in_group("soldiers").size()
+	_military_levy_label.text = "Raised: %d (on map)" % count
 
 func _build_bottom_bar() -> void:
 	var bottom := PanelContainer.new()
