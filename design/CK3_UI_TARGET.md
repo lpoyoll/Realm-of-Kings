@@ -1,131 +1,218 @@
-# Realm of Kings — CK3 UI Target (shell)
+# Realm of Kings — CK3 UI & Feature Target
 
-**Status:** Target vision for UI direction (not a full systems build)  
-**Engine:** Godot 4 Control UI over the existing continuous 3D world  
-**Principle:** Think **CK3 chrome**, not action-game hotkeys. Mouse + panels first; keys are optional shortcuts later.  
-**Maps to:** v0.1 Ashford slice (strategy cam, real people/army, levy convert, dynasty/title stubs)
+**Status:** PRODUCT LOCK (Ignis via Paul, 2026-09-06) — **CK3 with a living visual world**; not RTS, not village-walker  
+**Engine:** Godot 4 Control shell over continuous world  
+**Art under map:** RimWorld-readable low-poly (v0.1)  
+**Reference:** Crusader Kings III UI/IA (screenshots welcome; no ripped Paradox assets in-game)
 
 **Local:** `C:\Users\Jason\Documents\realm-of-kings`  
-**SCM:** https://github.com/lpoyoll/Realm-of-Kings
+**SCM:** https://github.com/lpoyoll/Realm-of-Kings  
+**Feeds:** `design/V0_VERTICAL_SLICE.md` (simulation truths already locked)
 
 ---
 
-## Player fantasy (UI)
+## North star
 
-You feel like you’re playing a grand-strategy court game: date and realm vitals at the top, an outliner of who/what you own, click the map or a name to open a dossier, issue Raise Levy from a button on the selected holding — then watch villagers become soldiers on the same world.
+Build **more or less a CK3 clone in systems and chrome**, with one hard difference: strategy map and physical world are the **same** continuous space, and levies/people are **real entities**.
+
+### The UI is the piece that brings it all together
+
+The shell is not decoration. It is the **player computer** for the whole game:
+
+- **CK3-shaped windows** (Realm, Military, Council, Court, Intrigue, Factions, Decisions, Character, Holding) are how you *think* and *issue orders*.
+- **The living map** is how those orders *manifest* (villagers become soldiers, armies march as bodies, people exist at places).
+- Every important number in a panel must resolve to something you can select, pan to, and see on the map when it matters.
+- Hotkeys never replace a panel; panels never lie about abstract counts.
+
+So: systems land *into* the UI first (stub window OK), then gain simulation depth — the chrome stays the spine.
 
 ---
 
-## Shell layout (target)
+## What we are / are not (product lock)
+
+| We **are** | We are **not** |
+|------------|----------------|
+| CK3-class grand strategy with CK3 chrome as the primary play surface | An RTS (no battalion micro fantasy) |
+| A continuous living map where people/armies are real selectable bodies | A village walker with UI bolted on |
+| Panel + map-RMB order flows (Raise Levy, move army, select dossiers) | WASD/hotkey-first command |
+| RimWorld-readable silhouettes proving physicalisation under strategy cam | Street-level control as the default fantasy |
+
+**Hard rules**
+1. Primary play surface = grand-strategy chrome (top bar, outliner, character/holding/army panels, decisions). Map clicks **serve the UI**.
+2. No RTS feel — if a feature makes it feel like commanding an RTS battalion, cut or redesign.
+3. Visual world proves physicalisation (levies from real villagers, people exist). Camera/default UX stays strategy/CK3.
+4. Next build priority after shell green: **deepen CK3 shell** (character panel, holding panel, outliner selection) — **not** more street-level control.
+
+QA judges future smokes on **CK3-feel**, not RTS completeness.
+
+---
+
+## Two horizons
+
+### Horizon A — UI shell (Dev now)
+Shell smoke **PASS** on `4c128fe` / `c7d330a`. **Next:** deepen character / holding / outliner selection + stub icon windows — **not** street control.
+
+### Horizon B — CK3 feature parity (roadmap)
+Fill the same windows with real systems over time. Empty/stub panels are OK early; **do not** invent alternate IA — mirror CK3 information architecture so we know what we are building toward.
+
+---
+
+## Horizon A — Shell layout (implement now)
 
 ```text
-┌─────────────────────────────────────────────────────────────┐
-│ TOP BAR: date | gold* | prestige* | piety* | dynasty chip   │
-├──────────┬──────────────────────────────────────┬───────────┤
-│ OUTLINER │           3D STRATEGY MAP            │ SIDE      │
-│ realm    │     (continuous world — v0.1)        │ PANEL     │
-│ holdings │                                      │ (context) │
-│ people   │                                      │           │
-│ armies   │                                      │           │
-├──────────┴──────────────────────────────────────┴───────────┤
-│ BOTTOM: speed P/1x/2x | alerts tray | map mode tabs (later) │
-└─────────────────────────────────────────────────────────────┘
-* stub numbers OK — no real economy yet
+┌──────────────────────────────────────────────────────────────────┐
+│ TOP BAR: Date │ Gold* │ Prestige* │ Piety* │ Lifestyle* │ Dynasty │
+│          + icon row stubs: Realm / Council / Court / Intrigue…     │
+├────────────┬─────────────────────────────────────┬───────────────┤
+│ OUTLINER   │         3D STRATEGY MAP             │ SIDE / DOSSIER│
+│ Holdings   │                                     │               │
+│ Vassals*   │                                     │               │
+│ People     │                                     │               │
+│ Armies     │                                     │               │
+│ Factions*  │                                     │               │
+├────────────┴─────────────────────────────────────┴───────────────┤
+│ BOTTOM: Pause / 1x / 2x / 3x* │ alert toasts │ map-mode tabs*    │
+└──────────────────────────────────────────────────────────────────┘
+* stub or disabled-with-tooltip ("Coming") until that system exists
 ```
 
-Zoom to street can dim/hide outliner density; strategy zoom is the UI’s home.
+**Selection:** `none | holding | character | title* | army`  
+LMB select, Esc/empty clear, outliner ↔ map sync.  
+**Raise Levy:** Holding dossier button (mouse-only required).  
+**Army move:** RMB on map with army selected.  
+**Keys:** optional mirrors only.
+
+Street zoom may collapse gutters; strategy zoom is home.
+
+Retire floating debug People/Army counters once shell shows them.
+
+### Shell panel fields (A)
+
+| Panel | Must show now | Stub OK |
+|-------|---------------|---------|
+| Top vitals | Date + gold/prestige/piety ints | Lifestyle, stress |
+| Top icons | Visible row | Open real windows later |
+| Outliner Holdings | Ashford | Multi-county |
+| Outliner People | Ruler + named NPCs | Villager browse |
+| Outliner Armies | Levy when raised | Multiple armies |
+| Outliner Vassals/Factions | Header + "None" | Real lists |
+| Dossier Holding | Name, buildings stub, **Raise Levy**, available levies | Dev/tax/faith |
+| Dossier Character | Name, role, opinion | Traits, rivals, hooks |
+| Dossier Army | Count (= bodies), RMB hint | Supply, knights |
+| Realm (no sel.) | Title, dynasty, People/Army totals | Realm laws |
+| Bottom | Pause/speeds + toast | Map modes |
+
+### Shell ACs (QA)
+
+1. Top bar: date + ≥1 vital + dynasty chip + icon row (stubs fine).  
+2. Outliner sections exist; Holdings/People/Armies select world entities.  
+3. Dossier switches Realm / Holding / Character / Army.  
+4. Raise Levy from Holding panel (no key required); villagers convert; People −N / Army +N.  
+5. Army selected → RMB moves same bodies.  
+6. Bottom pause/speed works; P may mirror pause.  
+7. Shell counts match entity rules (civilians vs soldiers).  
+8. Empty levy disables button with reason.  
+9. Strategy default; street dive doesn’t break selection bus.
 
 ---
 
-## Panels → v0.1 wiring
+## Horizon B — CK3 feature map (build toward)
 
-| UI piece | Player-facing job | Wire to now | Fake / later |
-|----------|-------------------|-------------|--------------|
-| **Top bar date** | Campaign clock | Cosmic pause/speed if present; else static “1066.9.15” | Calendar events |
-| **Top bar gold/prestige/piety** | Realm vitals | Stub ints on GameData | Economy / renown / faith |
-| **Dynasty chip** | Who you are | Existing dynasty stub | Full dynasty tree |
-| **Outliner → Holdings** | List Ashford | One row → select settlement | Multi-county |
-| **Outliner → People** | Named NPCs + ruler | Existing npc/ruler entities | Traits, relations graph |
-| **Outliner → Armies** | Mustered army | Army entity when count > 0 | Multiple armies |
-| **Side panel — Holding** | Selected settlement | Buildings list stub; **Raise Levy** button | Buildings, tax, development |
-| **Side panel — Character** | Selected person | Name, role, opinion stub | Traits, schemes, marriage |
-| **Side panel — Army** | Selected army | Soldier count (= bodies); **Move** hint | Supply, commander, battles |
-| **Tooltips** | Hover name/role/count | Short strings | Modifier stacks |
-| **Alerts tray** | “Levy arrived at yard” | Optional one-liner | Threats, births, wars |
+Use this as the checklist of **windows/systems** to fill. Each gets a dossier or dedicated window in the shell’s icon row. Simulation still obeys: important things exist on the map when relevant.
 
----
+### Character & dynasty
+- Character view: traits, skills, lifestyle, stress, dread, prestige, piety  
+- Relationships: friends, rivals, soulmate, hooks  
+- Dynasty tree, houses, renown, legacies  
+- Succession, heirs, claims  
+- Education / childhood (later)
 
-## Primary flows (must feel CK3)
+### Realm & government
+- Titles hierarchy (barony → county → duchy → kingdom → empire) — start with barony/county stubs  
+- Vassals, feudal contracts (stub → real)  
+- Council jobs + councillor characters  
+- Laws, crown authority  
+- Court / grandees / court positions (later)
 
-### 1. Select holding → Raise Levy
-1. Click Ashford on map **or** outliner Holdings row.  
-2. Side panel shows holding dossier.  
-3. Click **Raise Levy** (primary button) — **not** an R-key requirement.  
-4. World: villagers convert → path to yard; People −N / Army +N.  
-5. Optional: toast “Levy mustering (N)”.
+### Intrigue & diplomacy
+- Schemes (murder, sway, fabricate claim…)  
+- Hooks & secrets  
+- Personal & realm diplomacy: alliances, marriages, betrothals, wars, tributaries  
+- Factions & civil wars
 
-### 2. Select army → Move
-1. Click army banner/bodies **or** outliner Armies.  
-2. Side panel: count, commander stub.  
-3. **Right-click** map ground → move order (same bodies).  
-4. Cursor / tooltip: “Move here”.
+### War & military
+- Raise levies / men-at-arms / knights (levies already entity-based)  
+- Army orders, gather, raid, supply (extend RMB model)  
+- Battles & sieges as physicalised events on the same map (differentiator)  
+- War overview / CB / warscore UI
 
-### 3. Select character
-1. Click pawn or outliner People.  
-2. Side panel: name, role, opinion; “Go to” pans camera.  
-3. Street zoom still allowed as a dive; returning to strategy restores shell focus.
+### Faith, culture, learning
+- Faith window, conversion, tenets (stub → real)  
+- Culture & hybridisation (later)  
+- Innovations / tech clock
 
-### 4. Pause / speed
-- **P** pause remains OK as a shortcut.  
-- On-screen speed controls in the bottom bar are the canonical UX.
+### Economy & holdings
+- Holding buildings & upgrades  
+- Domain limit, taxes, men-at-arms recruitment  
+- Development, control, popular opinion  
+- Trade later if we want; not required for CK3-feel MVP
 
----
+### Map modes & alerts
+- Political, dynasty, faith, culture, opinion, development map modes  
+- Feed / important alerts (birth, death, war, faction threshold)
 
-## Input rules
+### Meta
+- Pause speeds, decisions list, finders (character/title), save/load, settings, encyclopedia stubs
 
-| Action | Canonical | Optional shortcut (later) |
-|--------|-----------|-----------------------------|
-| Raise Levy | Holding panel button | R |
-| Move army | RMB on map with army selected | — |
-| Select | LMB | — |
-| Deselect / back | Esc / empty click | — |
-| Pause | Bottom bar + **P** | — |
-| Zoom | Mouse wheel | — |
-
-**Do not** ship new gameplay that only exists as a keybind with no panel/map affordance.
+**Parity rule:** When adding a system, add its **CK3-shaped entry point** in the shell first (icon + empty window), then fill data — so the clone shape stays visible.
 
 ---
 
-## Visual tone
+## Differentiator (never drop)
 
-- Dense but calm: CK3-like panels (dark parchment / cold stone), readable fonts, clear selected state.  
-- Map stays RimWorld-readable pawns/buildings underneath.  
-- Panels are opaque/translucent frames — they must not fight the 3D pick.
-
----
-
-## Acceptance criteria (UI shell pass)
-
-1. Top bar visible with date + at least one stub vital + dynasty chip.  
-2. Outliner lists Holdings / People / Armies and selecting a row selects the world entity.  
-3. Side panel swaps by selection type (holding / character / army).  
-4. Raise Levy is issued from the holding panel (works with no key press).  
-5. Army move is RMB-on-map with army selected (panel explains it).  
-6. Existing v0.1 levy rules still hold (convert villagers, HUD conservation, NPCs untouched).  
-7. Keyboard-only play is **not** required; shortcuts may mirror buttons but buttons win.
+| CK3-like | Our twist |
+|----------|-----------|
+| Levy number in UI | UI number = bodies on map; raise **converts** villagers |
+| Abstract armies | Armies march as entities you can zoom to |
+| Separate tactical map | Same continuous world; street dive optional |
+| 2D map art | RimWorld-like 3D readable from strategy cam |
 
 ---
 
-## Out of scope for this UI pass
+## Reference shots
 
-Full CK3 systems (council, intrigue UI, war overview, religion window, culture map modes, decisions list, marriage finder, save/load screens). One shell + the three flows above is enough to aim at.
+Public guide refs pulled for IA (GamePressure interface guide, military/levy guides). Drop your own CK3 shots anytime to refine density.
+
+## Screenshot wishlist (optional extras)
+
+If you can drop refs (your shots or web grabs), prioritize:
+
+1. **Main strategy screen** — full chrome (top bar, outliners, dossier open on a county)  
+2. **Character view** — traits/skills lifestyle bar  
+3. **Military / army selected** — raise men-at-arms / levy panel  
+4. **Council**  
+5. **Intrigue / schemes**  
+6. **War overview**  
+7. Any **map mode** strip you care about first
+
+I’ll translate those into panel wireframes + fill order without copying assets.
 
 ---
 
-## Build order for Dev
+## Dev build order (unchanged cadence)
 
-1. CanvasLayer shell: top bar, outliner, side panel, bottom bar (empty frames OK).  
-2. Selection bus: map click + outliner → panel.  
-3. Move Raise Levy off R-only onto holding button (keep R as optional shortcut if cheap).  
-4. RMB move when army selected + tooltip.  
-5. Polish stubs (gold/prestige) and one toast.
+1. Shell frames + realm summary + icon row stubs  
+2. Selection bus  
+3. Holding Raise Levy (mouse)  
+4. Army RMB move  
+5. Character dossier  
+6. Toast / disable empty levy / kill debug HUD  
+7. Deepen Horizon A: richer character + holding dossiers, tighter outliner selection, stub Realm/Military/Council icons.
+8. Then Horizon B fills: **Character traits → Council → Military MaA panel → Decisions → Map modes**
+9. Street/WASD ruler dive stays optional proof only — never the roadmap driver.
+
+---
+
+## Out of scope for Horizon A only
+
+Real council/intrigue/war/religion simulation, production fonts/portraits, Paradox assets, multiplayer.
