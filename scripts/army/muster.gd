@@ -32,7 +32,7 @@ func can_muster() -> bool:
 func raise_levy() -> void:
 	if not can_muster():
 		return
-	var current := army.get_count() if army else 0
+	var current: int = army.get_count() if army else 0
 	if current >= max_levy:
 		_mustered = true
 		return
